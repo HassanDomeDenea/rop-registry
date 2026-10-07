@@ -46,7 +46,7 @@ class VisitController extends Controller
             'patient' => RegistryPresenter::patient($patient),
             'visit' => RegistryPresenter::visit($visit, $patient),
             'previous' => null,
-            'visitNumber' => $patient->visits()->pluck('id')->search($visit->id) + 1,
+            'visitNumber' => $this->visitNumber($patient, $visit),
         ]);
     }
 
@@ -82,9 +82,19 @@ class VisitController extends Controller
         return Inertia::render('print/Visit', [
             'patient' => RegistryPresenter::patient($patient),
             'visit' => RegistryPresenter::visit($visit, $patient),
-            'visitNumber' => $patient->visits()->pluck('id')->search($visit->id) + 1,
+            'visitNumber' => $this->visitNumber($patient, $visit),
             'clinic' => config('registry.clinic'),
         ]);
+    }
+
+    /**
+     * Get the position of the visit in the chronological order of the patient's visits.
+     */
+    protected function visitNumber(Patient $patient, Visit $visit): int
+    {
+        $position = $patient->visits()->pluck('id')->search($visit->id);
+
+        return is_int($position) ? $position + 1 : 1;
     }
 
     /**
@@ -92,7 +102,12 @@ class VisitController extends Controller
      */
     protected function previousVisit(Patient $patient): ?array
     {
-        $previous = $patient->visits()->whereNotNull('visit_date')->get()->last();
+        $previous = Visit::query()
+            ->whereBelongsTo($patient)
+            ->whereNotNull('visit_date')
+            ->orderByDesc('visit_date')
+            ->orderByDesc('id')
+            ->first();
 
         return $previous === null ? null : RegistryPresenter::visit($previous, $patient);
     }

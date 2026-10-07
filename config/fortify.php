@@ -161,14 +161,8 @@ return [
     */
 
     'features' => [
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        // The registry has a single administrator: registration, password reset e-mails,
+        // e-mail verification, two-factor authentication and passkeys are not needed.
     ],
 
 ];

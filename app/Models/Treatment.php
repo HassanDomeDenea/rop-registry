@@ -78,7 +78,7 @@ class Treatment extends Model
 
     public function auditLabel(): string
     {
-        return trim(($this->patient?->name ?? '').' · '.$this->type->label(), ' ·');
+        return $this->patient->name.' · '.$this->type->label();
     }
 
     public function auditPatientId(): ?int

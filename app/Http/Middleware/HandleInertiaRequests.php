@@ -18,6 +18,7 @@ use App\Enums\VisitKind;
 use App\Enums\Zone;
 use App\Services\ReminderService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
 
@@ -62,13 +63,27 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'locale' => $locale,
             'direction' => config("registry.locales.{$locale}.dir", 'ltr'),
-            'locales' => collect(config('registry.locales'))
-                ->map(fn (array $language, string $code): array => ['code' => $code, 'label' => $language['label']])
-                ->values(),
+            'locales' => $this->locales(),
             'translations' => fn (): array => $this->translations($locale),
             'enums' => fn (): array => $this->enums(),
             'reminderCounts' => fn (): ?array => $request->user() ? app(ReminderService::class)->counts() : null,
         ];
+    }
+
+    /**
+     * Get the languages the interface is available in.
+     *
+     * @return list<array{code: string, label: string}>
+     */
+    protected function locales(): array
+    {
+        $locales = [];
+
+        foreach (Config::array('registry.locales') as $code => $language) {
+            $locales[] = ['code' => (string) $code, 'label' => $language['label']];
+        }
+
+        return $locales;
     }
 
     /**

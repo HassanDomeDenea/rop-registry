@@ -168,7 +168,7 @@ class Visit extends Model
 
     public function auditLabel(): string
     {
-        return trim(($this->patient?->name ?? '').' · '.($this->visit_date?->format('Y-m-d') ?? '—'), ' ·');
+        return $this->patient->name.' · '.($this->visit_date?->format('Y-m-d') ?? '—');
     }
 
     public function auditPatientId(): ?int

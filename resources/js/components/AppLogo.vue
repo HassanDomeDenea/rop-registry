@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { useI18n } from '@/composables/useI18n';
 
-const name = usePage().props.name;
+const { t } = useI18n();
 </script>
 
 <template>
     <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+        class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
+        <AppLogoIcon class="size-5" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">{{
-            name
-        }}</span>
+    <div class="ms-1 grid flex-1 text-start text-sm">
+        <span class="truncate leading-tight font-semibold">
+            {{ t('ROP Registry') }}
+        </span>
+        <span class="truncate text-xs leading-tight text-sidebar-foreground/60">
+            {{ t('Retinopathy of prematurity') }}
+        </span>
     </div>
 </template>

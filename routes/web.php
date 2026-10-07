@@ -13,7 +13,7 @@ use App\Http\Controllers\TreatmentController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/dashboard')->name('home');
+Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');

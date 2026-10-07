@@ -1,120 +1,81 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { KeyRound } from '@lucide/vue';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
-import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import FormField from '@/components/registry/FormField.vue';
+import SectionCard from '@/components/registry/SectionCard.vue';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/security';
-import type { Props as ManagePasskeysProps } from '@/components/ManagePasskeys.vue';
-import ManagePasskeys from '@/components/ManagePasskeys.vue';
-import type { Props as ManageTwoFactorProps } from '@/components/ManageTwoFactor.vue';
-import ManageTwoFactor from '@/components/ManageTwoFactor.vue';
+import { useI18n } from '@/composables/useI18n';
 
-// oxfmt-ignore
-type Props = {
+defineProps<{
     passwordRules: string;
-} & ManagePasskeysProps &
-    ManageTwoFactorProps;
+}>();
 
-const props = defineProps<Props>();
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Security settings',
-                href: edit(),
-            },
-        ],
-    },
-});
+const { t } = useI18n();
 </script>
 
 <template>
-    <Head title="Security settings" />
+    <Head :title="t('Password')" />
 
-    <h1 class="sr-only">Security settings</h1>
-
-    <div class="space-y-6">
-        <Heading
-            variant="small"
-            title="Update password"
-            description="Ensure your account is using a long, random password to stay secure"
-        />
-
+    <SectionCard
+        :title="t('Change password')"
+        :description="t('Use a long password that is not used anywhere else')"
+        :icon="KeyRound"
+    >
         <Form
             v-bind="SecurityController.update.form()"
-            :options="{
-                preserveScroll: true,
-            }"
+            :options="{ preserveScroll: true }"
             reset-on-success
             :reset-on-error="[
                 'password',
                 'password_confirmation',
                 'current_password',
             ]"
-            class="space-y-6"
+            class="space-y-5"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
-                <Label for="current_password">Current password</Label>
+            <FormField
+                :label="t('Current password')"
+                for="current_password"
+                :error="errors.current_password"
+            >
                 <PasswordInput
                     id="current_password"
                     name="current_password"
-                    class="mt-1 block w-full"
                     autocomplete="current-password"
-                    placeholder="Current password"
                 />
-                <InputError :message="errors.current_password" />
-            </div>
+            </FormField>
 
-            <div class="grid gap-2">
-                <Label for="password">New password</Label>
+            <FormField
+                :label="t('New password')"
+                for="password"
+                :error="errors.password"
+            >
                 <PasswordInput
                     id="password"
                     name="password"
-                    class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="New password"
-                    :passwordrules="props.passwordRules"
+                    :passwordrules="passwordRules"
                 />
-                <InputError :message="errors.password" />
-            </div>
+            </FormField>
 
-            <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+            <FormField
+                :label="t('Confirm password')"
+                for="password_confirmation"
+                :error="errors.password_confirmation"
+            >
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
-                    class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="Confirm password"
-                    :passwordrules="props.passwordRules"
+                    :passwordrules="passwordRules"
                 />
-                <InputError :message="errors.password_confirmation" />
-            </div>
+            </FormField>
 
-            <div class="flex items-center gap-4">
-                <Button
-                    :disabled="processing"
-                    data-test="update-password-button"
-                >
-                    Save
-                </Button>
-            </div>
+            <Button :disabled="processing" data-test="update-password-button">
+                {{ t('Save') }}
+            </Button>
         </Form>
-    </div>
-
-    <ManageTwoFactor
-        :canManageTwoFactor="canManageTwoFactor"
-        :requiresConfirmation="requiresConfirmation"
-        :twoFactorEnabled="twoFactorEnabled"
-    />
-
-    <ManagePasskeys
-        :canManagePasskeys="canManagePasskeys"
-        :passkeys="passkeys"
-    />
+    </SectionCard>
 </template>

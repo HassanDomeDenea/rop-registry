@@ -40,60 +40,36 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
     }
 
-    public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
+    public function test_interface_language_can_be_changed()
     {
         $user = User::factory()->create();
 
         $response = $this
             ->actingAs($user)
-            ->patch(route('profile.update'), [
-                'name' => 'Test User',
-                'email' => $user->email,
-            ]);
+            ->from(route('appearance.edit'))
+            ->put(route('preferences.update'), ['locale' => 'ar']);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('appearance.edit'));
 
-        $this->assertNotNull($user->refresh()->email_verified_at);
+        $this->assertSame('ar', $user->refresh()->locale);
+
+        $this->actingAs($user)
+            ->get(route('appearance.edit'))
+            ->assertInertia(fn ($page) => $page->where('locale', 'ar')->where('direction', 'rtl'));
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_unsupported_interface_language_is_rejected()
     {
         $user = User::factory()->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->delete(route('profile.destroy'), [
-                'password' => 'password',
-            ]);
+        $this->actingAs($user)
+            ->put(route('preferences.update'), ['locale' => 'fr'])
+            ->assertSessionHasErrors('locale');
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('home'));
-
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
-    }
-
-    public function test_correct_password_must_be_provided_to_delete_account()
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->from(route('profile.edit'))
-            ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
-
-        $this->assertNotNull($user->fresh());
+        $this->assertNull($user->refresh()->locale);
     }
 }

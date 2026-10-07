@@ -94,17 +94,25 @@ class BackupService
      */
     public function all(): array
     {
-        return collect(File::files($this->directory()))
-            ->filter(fn ($file): bool => preg_match(self::NAME_PATTERN, $file->getFilename()) === 1)
-            ->map(fn ($file): array => [
+        $backups = [];
+
+        foreach (File::files($this->directory()) as $file) {
+            if (preg_match(self::NAME_PATTERN, $file->getFilename()) !== 1) {
+                continue;
+            }
+
+            $backups[] = [
                 'name' => $file->getFilename(),
                 'type' => explode('-', $file->getFilename())[1],
-                'size' => $file->getSize(),
+                'size' => $file->getSize() ?: 0,
                 'created_at' => Carbon::createFromTimestamp($file->getMTime())->toIso8601String(),
-            ])
-            ->sortByDesc('name')
-            ->values()
-            ->all();
+            ];
+        }
+
+        // The timestamp follows the type in the name, so the newest archive is sorted by date, not by type.
+        usort($backups, fn (array $a, array $b): int => strcmp(substr($b['name'], -19), substr($a['name'], -19)));
+
+        return $backups;
     }
 
     /**

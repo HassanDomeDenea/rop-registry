@@ -7,6 +7,7 @@ use App\Http\Requests\PatientRequest;
 use App\Models\Audit;
 use App\Models\Patient;
 use App\Support\RegistryPresenter;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
 {
-    protected const SORTABLE = [
-        'file_number', 'name', 'dob', 'ga_weeks', 'birth_weight_g', 'exams_count',
-        'last_visit_date', 'next_appointment_date', 'status', 'created_at',
+    /**
+     * The sortable columns, each with the expression that keeps its empty values last.
+     */
+    protected const NULLS_LAST = [
+        'file_number' => 'file_number is null',
+        'name' => 'name is null',
+        'dob' => 'dob is null',
+        'ga_weeks' => 'ga_weeks is null',
+        'birth_weight_g' => 'birth_weight_g is null',
+        'exams_count' => 'exams_count is null',
+        'last_visit_date' => 'last_visit_date is null',
+        'next_appointment_date' => 'next_appointment_date is null',
+        'status' => 'status is null',
+        'created_at' => 'created_at is null',
     ];
 
     /**
@@ -58,7 +70,7 @@ class PatientController extends Controller
     {
         $patient = Patient::query()->create($request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient registered.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient registered.')]);
 
         return to_route('patients.show', $patient);
     }
@@ -102,7 +114,7 @@ class PatientController extends Controller
     {
         $patient->update($request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient updated.')]);
 
         return to_route('patients.show', $patient);
     }
@@ -116,7 +128,7 @@ class PatientController extends Controller
             'status' => ['required', Rule::enum(PatientStatus::class)],
         ]));
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Status updated.')]);
 
         return back();
     }
@@ -128,7 +140,7 @@ class PatientController extends Controller
     {
         $patient->delete();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient moved to the recycle bin.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient moved to the recycle bin.')]);
 
         return to_route('patients.index');
     }
@@ -140,7 +152,7 @@ class PatientController extends Controller
     {
         $patient->restore();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient restored.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient restored.')]);
 
         return to_route('patients.show', $patient);
     }
@@ -152,39 +164,7 @@ class PatientController extends Controller
     {
         $patients = $this->query($this->filters($request))->get();
 
-        $columns = [
-            __('File no.') => fn (Patient $patient) => $patient->file_number,
-            __('Name') => fn (Patient $patient) => $patient->name,
-            __('Date of birth') => fn (Patient $patient) => $patient->dob?->format('Y-m-d'),
-            __('Sex') => fn (Patient $patient) => $patient->sex->label(),
-            __('Birth weight (g)') => fn (Patient $patient) => $patient->birth_weight_g,
-            __('GA weeks') => fn (Patient $patient) => $patient->ga_weeks,
-            __('GA days') => fn (Patient $patient) => $patient->ga_days,
-            __('Multiplicity') => fn (Patient $patient) => $patient->multiplicity?->label(),
-            __('Delivery mode') => fn (Patient $patient) => $patient->delivery_mode?->label(),
-            __('Referral date') => fn (Patient $patient) => $patient->referral_date?->format('Y-m-d'),
-            __('Referring doctor') => fn (Patient $patient) => $patient->referring_doctor,
-            __('NICU stay (days)') => fn (Patient $patient) => $patient->nicu_days,
-            __('Respiratory support') => fn (Patient $patient) => $patient->respiratory_support?->label(),
-            __('Support duration (days)') => fn (Patient $patient) => $patient->support_days,
-            __('Systemic illness') => fn (Patient $patient) => $patient->systemic_illness,
-            __('Phone') => fn (Patient $patient) => $patient->phone,
-            __('Address') => fn (Patient $patient) => $patient->address,
-            __('Status') => fn (Patient $patient) => $patient->status->label(),
-            __('Examinations') => fn (Patient $patient) => $patient->exams_count,
-            __('First visit') => fn (Patient $patient) => $patient->first_visit_date?->format('Y-m-d'),
-            __('Last visit') => fn (Patient $patient) => $patient->last_visit_date?->format('Y-m-d'),
-            __('Next appointment') => fn (Patient $patient) => $patient->next_appointment_date?->format('Y-m-d'),
-            __('Documented ROP') => fn (Patient $patient) => match ($patient->any_rop) {
-                true => __('Yes'),
-                false => __('No'),
-                null => __('Unknown'),
-            },
-            __('Highest stage') => fn (Patient $patient) => $patient->highest_stage?->label(),
-            __('Injection performed') => fn (Patient $patient) => $patient->had_injection ? __('Yes') : __('No'),
-            __('Laser performed') => fn (Patient $patient) => $patient->had_laser ? __('Yes') : __('No'),
-            __('Notes') => fn (Patient $patient) => $patient->notes,
-        ];
+        $columns = $this->exportColumns();
 
         return response()->streamDownload(function () use ($patients, $columns): void {
             $output = fopen('php://output', 'w');
@@ -198,7 +178,7 @@ class PatientController extends Controller
             fputcsv($output, array_keys($columns));
 
             foreach ($patients as $patient) {
-                fputcsv($output, array_map(fn (callable $column) => $column($patient), array_values($columns)));
+                fputcsv($output, array_map(fn (Closure $column): string|int|null => $column($patient), array_values($columns)));
             }
 
             fclose($output);
@@ -206,7 +186,59 @@ class PatientController extends Controller
     }
 
     /**
-     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: string, direction: string, per_page: int}
+     * Translate an interface string.
+     */
+    protected function text(string $key): string
+    {
+        $translation = __($key);
+
+        return is_string($translation) ? $translation : $key;
+    }
+
+    /**
+     * Get the columns of the spreadsheet export: heading => value resolver.
+     *
+     * @return array<string, Closure(Patient): (string|int|null)>
+     */
+    protected function exportColumns(): array
+    {
+        return [
+            $this->text('File no.') => fn (Patient $patient) => $patient->file_number,
+            $this->text('Name') => fn (Patient $patient) => $patient->name,
+            $this->text('Date of birth') => fn (Patient $patient) => $patient->dob?->format('Y-m-d'),
+            $this->text('Sex') => fn (Patient $patient) => $patient->sex->label(),
+            $this->text('Birth weight (g)') => fn (Patient $patient) => $patient->birth_weight_g,
+            $this->text('GA weeks') => fn (Patient $patient) => $patient->ga_weeks,
+            $this->text('GA days') => fn (Patient $patient) => $patient->ga_days,
+            $this->text('Multiplicity') => fn (Patient $patient) => $patient->multiplicity?->label(),
+            $this->text('Delivery mode') => fn (Patient $patient) => $patient->delivery_mode?->label(),
+            $this->text('Referral date') => fn (Patient $patient) => $patient->referral_date?->format('Y-m-d'),
+            $this->text('Referring doctor') => fn (Patient $patient) => $patient->referring_doctor,
+            $this->text('NICU stay (days)') => fn (Patient $patient) => $patient->nicu_days,
+            $this->text('Respiratory support') => fn (Patient $patient) => $patient->respiratory_support?->label(),
+            $this->text('Support duration (days)') => fn (Patient $patient) => $patient->support_days,
+            $this->text('Systemic illness') => fn (Patient $patient) => $patient->systemic_illness,
+            $this->text('Phone') => fn (Patient $patient) => $patient->phone,
+            $this->text('Address') => fn (Patient $patient) => $patient->address,
+            $this->text('Status') => fn (Patient $patient) => $patient->status->label(),
+            $this->text('Examinations') => fn (Patient $patient) => $patient->exams_count,
+            $this->text('First visit') => fn (Patient $patient) => $patient->first_visit_date?->format('Y-m-d'),
+            $this->text('Last visit') => fn (Patient $patient) => $patient->last_visit_date?->format('Y-m-d'),
+            $this->text('Next appointment') => fn (Patient $patient) => $patient->next_appointment_date?->format('Y-m-d'),
+            $this->text('Documented ROP') => fn (Patient $patient) => match ($patient->any_rop) {
+                true => $this->text('Yes'),
+                false => $this->text('No'),
+                null => $this->text('Unknown'),
+            },
+            $this->text('Highest stage') => fn (Patient $patient) => $patient->highest_stage?->label(),
+            $this->text('Injection performed') => fn (Patient $patient) => $patient->had_injection ? $this->text('Yes') : $this->text('No'),
+            $this->text('Laser performed') => fn (Patient $patient) => $patient->had_laser ? $this->text('Yes') : $this->text('No'),
+            $this->text('Notes') => fn (Patient $patient) => $patient->notes,
+        ];
+    }
+
+    /**
+     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
      */
     protected function filters(Request $request): array
     {
@@ -221,14 +253,14 @@ class PatientController extends Controller
             'treatment' => $request->string('treatment')->toString(),
             'review' => $request->boolean('review'),
             'trashed' => $request->boolean('trashed'),
-            'sort' => in_array($sort, self::SORTABLE, true) ? $sort : 'created_at',
+            'sort' => array_key_exists($sort, self::NULLS_LAST) ? $sort : 'created_at',
             'direction' => $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc',
             'per_page' => in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25,
         ];
     }
 
     /**
-     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: string, direction: string, per_page: int}  $filters
+     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
      * @return Builder<Patient>
      */
     protected function query(array $filters): Builder
@@ -247,11 +279,11 @@ class PatientController extends Controller
             ->when($filters['treatment'] === 'pending', fn (Builder $query) => $query->where('treatment_pending', true))
             ->when($filters['treatment'] === 'none', fn (Builder $query) => $query->where('had_injection', false)->where('had_laser', false))
             ->when($filters['review'], fn (Builder $query) => $query->whereHas('reviewItems', fn (Builder $query) => $query->whereNull('resolved_at')))
-            ->when(
-                $filters['sort'] === 'file_number',
-                fn (Builder $query) => $query->orderByRaw('file_number is null')->orderByRaw('cast(file_number as integer) '.$filters['direction'])->orderBy('file_number', $filters['direction']),
-                fn (Builder $query) => $query->orderByRaw($filters['sort'].' is null')->orderBy($filters['sort'], $filters['direction']),
-            )
+            ->orderByRaw(self::NULLS_LAST[$filters['sort']])
+            ->when($filters['sort'] === 'file_number', fn (Builder $query) => $query->orderByRaw(
+                $filters['direction'] === 'asc' ? 'cast(file_number as integer) asc' : 'cast(file_number as integer) desc',
+            ))
+            ->orderBy($filters['sort'], $filters['direction'])
             ->orderBy('id', $filters['direction']);
     }
 }

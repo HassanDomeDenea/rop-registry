@@ -29,7 +29,7 @@ class DashboardController extends Controller
                 'with_rop' => Patient::query()->where('any_rop', true)->count(),
                 'treated' => Patient::query()->where(fn ($query) => $query->where('had_injection', true)->orWhere('had_laser', true))->count(),
                 'visits_this_month' => Visit::query()->whereDate('visit_date', '>=', $monthStart)->count(),
-                'new_this_month' => Patient::query()->whereDate('created_at', '>=', $monthStart)->count(),
+                'new_this_month' => Patient::query()->whereRaw('date(coalesce(first_visit_date, referral_date, created_at)) >= ?', [$monthStart->format('Y-m-d')])->count(),
                 'treatments_this_month' => Treatment::query()->whereDate('performed_date', '>=', $monthStart)->count(),
             ],
             'today' => $reminders->today()->get()->map($present),

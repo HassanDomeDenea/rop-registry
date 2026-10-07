@@ -1,5 +1,6 @@
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
+import type { EnumName, EnumOption, ReminderCounts } from '@/types/registry';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -20,6 +21,12 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            locale: string;
+            direction: 'ltr' | 'rtl';
+            locales: { code: string; label: string }[];
+            translations: Record<string, string>;
+            enums: Record<EnumName, EnumOption[]>;
+            reminderCounts: ReminderCounts | null;
             [key: string]: unknown;
         };
     }

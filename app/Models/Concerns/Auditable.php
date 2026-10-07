@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Records every create, update, delete and restore of the model in the audits table.
+ *
+ * The trait is meant for models that use SoftDeletes.
  */
 trait Auditable
 {
@@ -36,11 +38,9 @@ trait Auditable
             $model->writeAudit('deleted', $model->auditableValues($model->getRawOriginal()), []);
         });
 
-        if (method_exists(static::class, 'restored')) {
-            static::restored(function (self $model): void {
-                $model->writeAudit('restored', [], []);
-            });
-        }
+        static::restored(function (self $model): void {
+            $model->writeAudit('restored', [], []);
+        });
     }
 
     /**

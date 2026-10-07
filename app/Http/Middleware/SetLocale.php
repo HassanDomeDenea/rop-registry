@@ -16,7 +16,7 @@ class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->user()?->locale ?? $request->cookie('locale');
+        $locale = $request->user()->locale ?? $request->cookie('locale');
 
         if (is_string($locale) && array_key_exists($locale, config('registry.locales'))) {
             App::setLocale($locale);

@@ -26,6 +26,9 @@ use Illuminate\Support\Facades\Date;
  *
  * Patient counts, eye counts and treatment-session counts are kept separate, and every
  * distribution reports its denominator and the number of unknown / unrecorded values.
+ *
+ * @phpstan-type EyeSummary array{rop: bool|null, stage: Stage|null, zone: Zone|null, plus: PlusDisease|null, treated: bool}
+ * @phpstan-type ChartItem array{label: string, value: int}
  */
 class RegistryStatistics
 {
@@ -74,8 +77,8 @@ class RegistryStatistics
                 ...$this->treatmentCharts($patients, $visits, $treatments),
             ],
             'crosstabs' => [
-                $this->crosstab(__('ROP by gestational age (weeks)'), $patients, 'ga_weeks', self::GA_GROUPS),
-                $this->crosstab(__('ROP by birth weight (g)'), $patients, 'birth_weight_g', self::WEIGHT_GROUPS),
+                $this->crosstab($this->text('ROP by gestational age (weeks)'), $patients, 'ga_weeks', self::GA_GROUPS),
+                $this->crosstab($this->text('ROP by birth weight (g)'), $patients, 'birth_weight_g', self::WEIGHT_GROUPS),
             ],
             'monthly' => $this->monthly($patients, $visits, $treatments),
         ];
@@ -90,48 +93,75 @@ class RegistryStatistics
      * Summarise every eye of the cohort across all of its recorded visits.
      *
      * @param  Collection<int, Patient>  $patients
-     * @return Collection<int, array{rop: bool|null, stage: Stage|null, zone: Zone|null, plus: PlusDisease|null, treated: bool}>
+     * @return Collection<int, EyeSummary>
      */
     protected function eyes(Collection $patients): Collection
     {
-        $zoneOrder = [Zone::ZoneOne->value => 1, Zone::PosteriorZoneTwo->value => 2, Zone::ZoneTwo->value => 3, Zone::ZoneThree->value => 4];
-        $plusOrder = [PlusDisease::Plus->value => 3, PlusDisease::PrePlus->value => 2, PlusDisease::None->value => 1];
+        $eyes = [];
 
-        return $patients->flatMap(function (Patient $patient) use ($zoneOrder, $plusOrder): array {
-            return collect(Visit::EYES)->map(function (string $eye) use ($patient, $zoneOrder, $plusOrder): array {
-                $visits = $patient->visits;
-                $side = EyeSide::from($eye);
+        foreach ($patients as $patient) {
+            foreach (EyeSide::cases() as $side) {
+                if ($side === EyeSide::Both) {
+                    continue;
+                }
 
-                $hasRop = $visits->contains(fn (Visit $visit): bool => $visit->eyeHasRop($eye));
-                $excluded = $visits->contains(fn (Visit $visit): bool => $visit->eyeExcludesRop($eye));
+                $eyes[] = $this->eye($patient, $side);
+            }
+        }
 
-                return [
-                    'rop' => $hasRop ? true : ($excluded ? false : null),
-                    'stage' => $visits->pluck("{$eye}_stage")
-                        ->filter(fn (?Stage $stage): bool => $stage?->severity() !== null)
-                        ->sortByDesc(fn (Stage $stage): int => (int) $stage->severity())
-                        ->first(),
-                    'zone' => $visits->pluck("{$eye}_zone")
-                        ->filter(fn (?Zone $zone): bool => $zone !== null && isset($zoneOrder[$zone->value]))
-                        ->sortBy(fn (Zone $zone): int => $zoneOrder[$zone->value])
-                        ->first(),
-                    'plus' => $visits->pluck("{$eye}_plus")
-                        ->filter(fn (?PlusDisease $plus): bool => $plus !== null && isset($plusOrder[$plus->value]))
-                        ->sortByDesc(fn (PlusDisease $plus): int => $plusOrder[$plus->value])
-                        ->first(),
-                    'treated' => $patient->treatments->contains(
-                        fn (Treatment $treatment): bool => $treatment->eye === $side || $treatment->eye === EyeSide::Both,
-                    ),
-                ];
-            })->all();
-        })->values();
+        return collect($eyes);
+    }
+
+    /**
+     * @return EyeSummary
+     */
+    protected function eye(Patient $patient, EyeSide $side): array
+    {
+        $eye = $side->value;
+        $visits = $patient->visits;
+        $isRight = $side === EyeSide::Right;
+
+        $hasRop = $visits->contains(fn (Visit $visit): bool => $visit->eyeHasRop($eye));
+        $excluded = $visits->contains(fn (Visit $visit): bool => $visit->eyeExcludesRop($eye));
+
+        $stage = null;
+        $zone = null;
+        $plus = null;
+
+        foreach ($visits as $visit) {
+            $visitStage = $isRight ? $visit->right_stage : $visit->left_stage;
+            $visitZone = $isRight ? $visit->right_zone : $visit->left_zone;
+            $visitPlus = $isRight ? $visit->right_plus : $visit->left_plus;
+
+            if ($visitStage?->severity() !== null && ($stage === null || $visitStage->severity() > $stage->severity())) {
+                $stage = $visitStage;
+            }
+
+            if ($visitZone?->posteriority() !== null && ($zone === null || $visitZone->posteriority() < $zone->posteriority())) {
+                $zone = $visitZone;
+            }
+
+            if ($visitPlus?->severity() !== null && ($plus === null || $visitPlus->severity() > $plus->severity())) {
+                $plus = $visitPlus;
+            }
+        }
+
+        return [
+            'rop' => $hasRop ? true : ($excluded ? false : null),
+            'stage' => $stage,
+            'zone' => $zone,
+            'plus' => $plus,
+            'treated' => $patient->treatments->contains(
+                fn (Treatment $treatment): bool => $treatment->eye === $side || $treatment->eye === EyeSide::Both,
+            ),
+        ];
     }
 
     /**
      * @param  Collection<int, Patient>  $patients
      * @param  Collection<int, Visit>  $visits
      * @param  Collection<int, Treatment>  $treatments
-     * @param  Collection<int, array<string, mixed>>  $eyes
+     * @param  Collection<int, EyeSummary>  $eyes
      * @return list<array{key: string, label: string, value: int|string, hint: string|null}>
      */
     protected function kpis(Collection $patients, Collection $visits, Collection $treatments, Collection $eyes): array
@@ -143,14 +173,14 @@ class RegistryStatistics
         $treated = $patients->filter(fn (Patient $patient): bool => $patient->treatments->isNotEmpty())->count();
 
         return [
-            ['key' => 'patients', 'label' => __('Patients'), 'value' => $total, 'hint' => null],
-            ['key' => 'examinations', 'label' => __('Examinations'), 'value' => $exams->count(), 'hint' => __(':count with a recorded date', ['count' => $exams->whereNotNull('visit_date')->count()])],
-            ['key' => 'rop', 'label' => __('Patients with documented ROP'), 'value' => $withRop, 'hint' => $knownRop > 0 ? __(':percent of :count with a known ROP status', ['percent' => $this->percent($withRop, $knownRop), 'count' => $knownRop]) : null],
-            ['key' => 'eyes', 'label' => __('Affected eyes'), 'value' => $eyes->where('rop', true)->count(), 'hint' => __('of :count eyes', ['count' => $eyes->count()])],
-            ['key' => 'type_one', 'label' => __('Type 1 ROP (treatment criteria)'), 'value' => $patients->where('type_one', true)->count(), 'hint' => __('patients')],
-            ['key' => 'treated', 'label' => __('Patients treated'), 'value' => $treated, 'hint' => $withRop > 0 ? __(':percent of patients with ROP', ['percent' => $this->percent($treated, $withRop)]) : null],
-            ['key' => 'injections', 'label' => __('Injection sessions'), 'value' => $treatments->filter(fn (Treatment $treatment): bool => $treatment->type->isInjection())->count(), 'hint' => __(':count patients', ['count' => $patients->where('had_injection', true)->count()])],
-            ['key' => 'laser', 'label' => __('Laser sessions'), 'value' => $treatments->where('type', TreatmentType::Laser)->count(), 'hint' => __(':count patients', ['count' => $patients->where('had_laser', true)->count()])],
+            ['key' => 'patients', 'label' => $this->text('Patients'), 'value' => $total, 'hint' => null],
+            ['key' => 'examinations', 'label' => $this->text('Examinations'), 'value' => $exams->count(), 'hint' => $this->text(':count with a recorded date', ['count' => $exams->whereNotNull('visit_date')->count()])],
+            ['key' => 'rop', 'label' => $this->text('Patients with documented ROP'), 'value' => $withRop, 'hint' => $knownRop > 0 ? $this->text(':percent of :count with a known ROP status', ['percent' => $this->percent($withRop, $knownRop), 'count' => $knownRop]) : null],
+            ['key' => 'eyes', 'label' => $this->text('Affected eyes'), 'value' => $eyes->where('rop', true)->count(), 'hint' => $this->text('of :count eyes', ['count' => $eyes->count()])],
+            ['key' => 'type_one', 'label' => $this->text('Type 1 ROP (treatment criteria)'), 'value' => $patients->where('type_one', true)->count(), 'hint' => $this->text('patients')],
+            ['key' => 'treated', 'label' => $this->text('Patients treated'), 'value' => $treated, 'hint' => $withRop > 0 ? $this->text(':percent of patients with ROP', ['percent' => $this->percent($treated, $withRop)]) : null],
+            ['key' => 'injections', 'label' => $this->text('Injection sessions'), 'value' => $treatments->filter(fn (Treatment $treatment): bool => $treatment->type->isInjection())->count(), 'hint' => $this->text(':count patients', ['count' => $patients->where('had_injection', true)->count()])],
+            ['key' => 'laser', 'label' => $this->text('Laser sessions'), 'value' => $treatments->where('type', TreatmentType::Laser)->count(), 'hint' => $this->text(':count patients', ['count' => $patients->where('had_laser', true)->count()])],
         ];
     }
 
@@ -170,23 +200,24 @@ class RegistryStatistics
         });
 
         return [
-            $this->numeric(__('Gestational age (weeks)'), $patients->map(fn (Patient $patient): ?float => $patient->gestationalAgeInDays() === null ? null : $patient->gestationalAgeInDays() / 7)),
-            $this->numeric(__('Birth weight (g)'), $patients->pluck('birth_weight_g'), 0),
-            $this->numeric(__('NICU stay (days)'), $patients->pluck('nicu_days')),
-            $this->numeric(__('Respiratory support (days)'), $patients->pluck('support_days')),
-            $this->numeric(__('Age at first examination (days)'), $firstExamAge),
-            $this->numeric(__('PMA at first examination (weeks)'), $firstExamPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
-            $this->numeric(__('PMA at first treatment (weeks)'), $treatmentPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
-            $this->numeric(__('Examinations per patient'), $patients->pluck('exams_count')),
+            $this->numeric($this->text('Gestational age (weeks)'), $patients->map(fn (Patient $patient): ?float => $patient->gestationalAgeInDays() === null ? null : $patient->gestationalAgeInDays() / 7)),
+            $this->numeric($this->text('Birth weight (g)'), $patients->pluck('birth_weight_g'), 0),
+            $this->numeric($this->text('NICU stay (days)'), $patients->pluck('nicu_days')),
+            $this->numeric($this->text('Respiratory support (days)'), $patients->pluck('support_days')),
+            $this->numeric($this->text('Age at first examination (days)'), $firstExamAge),
+            $this->numeric($this->text('PMA at first examination (weeks)'), $firstExamPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
+            $this->numeric($this->text('PMA at first treatment (weeks)'), $treatmentPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
+            $this->numeric($this->text('Examinations per patient'), $patients->pluck('exams_count')),
         ];
     }
 
     /**
-     * @param  Collection<int, int|float|null>  $values
+     * @param  iterable<int, int|float|null>  $values
      * @return array{label: string, n: int, missing: int, mean: float|null, median: float|null, min: float|null, max: float|null}
      */
-    protected function numeric(string $label, Collection $values, int $precision = 1): array
+    protected function numeric(string $label, iterable $values, int $precision = 1): array
     {
+        $values = collect($values);
         $known = $values->filter(fn (mixed $value): bool => $value !== null)->map(fn (mixed $value): float => (float) $value)->sort()->values();
 
         return [
@@ -207,20 +238,20 @@ class RegistryStatistics
     protected function demographicCharts(Collection $patients): array
     {
         return [
-            'sex' => $this->enumChart(__('Sex'), $patients->pluck('sex'), Sex::cases(), __('patients'), [Sex::Unknown]),
-            'gestational_age' => $this->groupChart(__('Gestational age (weeks)'), $patients->pluck('ga_weeks'), self::GA_GROUPS, __('patients')),
-            'birth_weight' => $this->groupChart(__('Birth weight (g)'), $patients->pluck('birth_weight_g'), self::WEIGHT_GROUPS, __('patients')),
-            'multiplicity' => $this->enumChart(__('Multiplicity'), $patients->pluck('multiplicity'), Multiplicity::cases(), __('patients'), [Multiplicity::Unknown]),
-            'delivery_mode' => $this->enumChart(__('Delivery mode'), $patients->pluck('delivery_mode'), DeliveryMode::cases(), __('patients')),
-            'respiratory_support' => $this->enumChart(__('Respiratory support'), $patients->pluck('respiratory_support'), RespiratorySupport::cases(), __('patients')),
-            'nicu_stay' => $this->groupChart(__('NICU stay (days)'), $patients->pluck('nicu_days'), self::NICU_GROUPS, __('patients')),
-            'status' => $this->enumChart(__('Follow-up status'), $patients->pluck('status'), PatientStatus::cases(), __('patients')),
+            'sex' => $this->enumChart($this->text('Sex'), $patients->pluck('sex'), Sex::cases(), $this->text('patients'), [Sex::Unknown]),
+            'gestational_age' => $this->groupChart($this->text('Gestational age (weeks)'), $patients->pluck('ga_weeks'), self::GA_GROUPS, $this->text('patients')),
+            'birth_weight' => $this->groupChart($this->text('Birth weight (g)'), $patients->pluck('birth_weight_g'), self::WEIGHT_GROUPS, $this->text('patients')),
+            'multiplicity' => $this->enumChart($this->text('Multiplicity'), $patients->pluck('multiplicity'), Multiplicity::cases(), $this->text('patients'), [Multiplicity::Unknown]),
+            'delivery_mode' => $this->enumChart($this->text('Delivery mode'), $patients->pluck('delivery_mode'), DeliveryMode::cases(), $this->text('patients')),
+            'respiratory_support' => $this->enumChart($this->text('Respiratory support'), $patients->pluck('respiratory_support'), RespiratorySupport::cases(), $this->text('patients')),
+            'nicu_stay' => $this->groupChart($this->text('NICU stay (days)'), $patients->pluck('nicu_days'), self::NICU_GROUPS, $this->text('patients')),
+            'status' => $this->enumChart($this->text('Follow-up status'), $patients->pluck('status'), PatientStatus::cases(), $this->text('patients')),
         ];
     }
 
     /**
      * @param  Collection<int, Patient>  $patients
-     * @param  Collection<int, array<string, mixed>>  $eyes
+     * @param  Collection<int, EyeSummary>  $eyes
      * @return array<string, array<string, mixed>>
      */
     protected function ropCharts(Collection $patients, Collection $eyes): array
@@ -228,25 +259,25 @@ class RegistryStatistics
         $affected = $eyes->where('rop', true);
 
         return [
-            'rop' => $this->chart(__('Documented ROP'), __('patients'), $patients->count(), $patients->whereNull('any_rop')->count(), [
-                ['label' => __('ROP documented'), 'value' => $patients->where('any_rop', true)->count()],
-                ['label' => __('No ROP documented'), 'value' => $patients->whereStrict('any_rop', false)->count()],
+            'rop' => $this->chart($this->text('Documented ROP'), $this->text('patients'), $patients->count(), $patients->whereNull('any_rop')->count(), [
+                ['label' => $this->text('ROP documented'), 'value' => $patients->where('any_rop', true)->count()],
+                ['label' => $this->text('No ROP documented'), 'value' => $patients->whereStrict('any_rop', false)->count()],
             ]),
-            'highest_stage' => $this->enumChart(__('Highest documented stage'), $patients->pluck('highest_stage'), $this->stagedCases(), __('patients')),
-            'eye_rop' => $this->chart(__('Eyes with documented ROP'), __('eyes'), $eyes->count(), $eyes->whereNull('rop')->count(), [
-                ['label' => __('Affected'), 'value' => $affected->count()],
-                ['label' => __('Not affected'), 'value' => $eyes->whereStrict('rop', false)->count()],
+            'highest_stage' => $this->enumChart($this->text('Highest documented stage'), $patients->pluck('highest_stage'), $this->stagedCases(), $this->text('patients')),
+            'eye_rop' => $this->chart($this->text('Eyes with documented ROP'), $this->text('eyes'), $eyes->count(), $eyes->whereNull('rop')->count(), [
+                ['label' => $this->text('Affected'), 'value' => $affected->count()],
+                ['label' => $this->text('Not affected'), 'value' => $eyes->whereStrict('rop', false)->count()],
             ]),
-            'eye_stage' => $this->enumChart(__('Highest stage per affected eye'), $affected->pluck('stage'), $this->stagedCases(), __('eyes')),
-            'eye_zone' => $this->enumChart(__('Most posterior zone per affected eye'), $affected->pluck('zone'), [Zone::ZoneOne, Zone::PosteriorZoneTwo, Zone::ZoneTwo, Zone::ZoneThree], __('eyes')),
-            'eye_plus' => $this->enumChart(__('Worst plus status per eye'), $eyes->pluck('plus'), [PlusDisease::None, PlusDisease::PrePlus, PlusDisease::Plus], __('eyes')),
-            'laterality' => $this->chart(__('Laterality among patients with ROP'), __('patients'), $patients->where('any_rop', true)->count(), 0, $this->laterality($patients)),
+            'eye_stage' => $this->enumChart($this->text('Highest stage per affected eye'), $affected->pluck('stage'), $this->stagedCases(), $this->text('eyes')),
+            'eye_zone' => $this->enumChart($this->text('Most posterior zone per affected eye'), $affected->pluck('zone'), [Zone::ZoneOne, Zone::PosteriorZoneTwo, Zone::ZoneTwo, Zone::ZoneThree], $this->text('eyes')),
+            'eye_plus' => $this->enumChart($this->text('Worst plus status per eye'), $eyes->pluck('plus'), [PlusDisease::None, PlusDisease::PrePlus, PlusDisease::Plus], $this->text('eyes')),
+            'laterality' => $this->chart($this->text('Laterality among patients with ROP'), $this->text('patients'), $patients->where('any_rop', true)->count(), 0, $this->laterality($patients)),
         ];
     }
 
     /**
      * @param  Collection<int, Patient>  $patients
-     * @return list<array{label: string, value: int}>
+     * @return list<ChartItem>
      */
     protected function laterality(Collection $patients): array
     {
@@ -265,9 +296,9 @@ class RegistryStatistics
         }
 
         return [
-            ['label' => __('Both eyes'), 'value' => $counts['both']],
-            ['label' => __('One eye'), 'value' => $counts['one']],
-            ['label' => __('Eye not attributed'), 'value' => $counts['unattributed']],
+            ['label' => $this->text('Both eyes'), 'value' => $counts['both']],
+            ['label' => $this->text('One eye'), 'value' => $counts['one']],
+            ['label' => $this->text('Eye not attributed'), 'value' => $counts['unattributed']],
         ];
     }
 
@@ -286,14 +317,14 @@ class RegistryStatistics
         $plannedLaser = $patients->filter(fn (Patient $patient): bool => $patient->visits->contains(fn (Visit $visit): bool => $visit->management_plan?->includesLaser() ?? false));
 
         return [
-            'treated_patients' => $this->chart(__('Completed treatment'), __('patients'), $patients->count(), 0, [
-                ['label' => __('Injection only'), 'value' => $injected->count() - $both],
-                ['label' => __('Laser only'), 'value' => $lasered->count() - $both],
-                ['label' => __('Injection and laser'), 'value' => $both],
-                ['label' => __('No treatment recorded'), 'value' => $patients->count() - $injected->count() - $lasered->count() + $both],
+            'treated_patients' => $this->chart($this->text('Completed treatment'), $this->text('patients'), $patients->count(), 0, [
+                ['label' => $this->text('Injection only'), 'value' => $injected->count() - $both],
+                ['label' => $this->text('Laser only'), 'value' => $lasered->count() - $both],
+                ['label' => $this->text('Injection and laser'), 'value' => $both],
+                ['label' => $this->text('No treatment recorded'), 'value' => $patients->count() - $injected->count() - $lasered->count() + $both],
             ]),
-            'treatment_sessions' => $this->enumChart(__('Treatment sessions by type'), $treatments->pluck('type'), TreatmentType::cases(), __('sessions')),
-            'treated_eyes' => $this->chart(__('Eyes treated per session type'), __('eyes'), 0, 0, collect(TreatmentType::cases())
+            'treatment_sessions' => $this->enumChart($this->text('Treatment sessions by type'), $treatments->pluck('type'), TreatmentType::cases(), $this->text('sessions')),
+            'treated_eyes' => $this->chart($this->text('Eyes treated per session type'), $this->text('eyes'), 0, 0, collect(TreatmentType::cases())
                 ->map(fn (TreatmentType $type): array => [
                     'label' => $type->label(),
                     'value' => (int) $treatments->where('type', $type)->sum(fn (Treatment $treatment): int => $treatment->eyesCount()),
@@ -301,15 +332,15 @@ class RegistryStatistics
                 ->filter(fn (array $item): bool => $item['value'] > 0)
                 ->values()
                 ->all()),
-            'plan_vs_performed' => $this->chart(__('Recommended versus performed'), __('patients'), $patients->count(), 0, [
-                ['label' => __('Injection recommended'), 'value' => $plannedInjection->count()],
-                ['label' => __('Injection performed'), 'value' => $injected->count()],
-                ['label' => __('Laser recommended'), 'value' => $plannedLaser->count()],
-                ['label' => __('Laser performed'), 'value' => $lasered->count()],
-                ['label' => __('Referred to Baghdad'), 'value' => $patients->filter(fn (Patient $patient): bool => $patient->visits->contains('management_plan', ManagementPlan::Referred))->count()],
+            'plan_vs_performed' => $this->chart($this->text('Recommended versus performed'), $this->text('patients'), $patients->count(), 0, [
+                ['label' => $this->text('Injection recommended'), 'value' => $plannedInjection->count()],
+                ['label' => $this->text('Injection performed'), 'value' => $injected->count()],
+                ['label' => $this->text('Laser recommended'), 'value' => $plannedLaser->count()],
+                ['label' => $this->text('Laser performed'), 'value' => $lasered->count()],
+                ['label' => $this->text('Referred to Baghdad'), 'value' => $patients->filter(fn (Patient $patient): bool => $patient->visits->contains('management_plan', ManagementPlan::Referred))->count()],
             ]),
-            'management_plans' => $this->enumChart(__('Management plans recorded at visits'), $visits->pluck('management_plan'), ManagementPlan::cases(), __('visits')),
-            'follow_up' => $this->chart(__('Examinations per patient'), __('patients'), $patients->count(), 0, collect([0, 1, 2, 3, 4])
+            'management_plans' => $this->enumChart($this->text('Management plans recorded at visits'), $visits->pluck('management_plan'), ManagementPlan::cases(), $this->text('visits')),
+            'follow_up' => $this->chart($this->text('Examinations per patient'), $this->text('patients'), $patients->count(), 0, collect([0, 1, 2, 3, 4])
                 ->map(fn (int $count): array => ['label' => (string) $count, 'value' => $patients->where('exams_count', $count)->count()])
                 ->push(['label' => '5+', 'value' => $patients->where('exams_count', '>=', 5)->count()])
                 ->all()),
@@ -327,7 +358,7 @@ class RegistryStatistics
     {
         $rows = [];
 
-        foreach ([...$groups, [null, null, __('Not recorded')]] as [$min, $max, $label]) {
+        foreach ([...$groups, [null, null, $this->text('Not recorded')]] as [$min, $max, $label]) {
             $group = $patients->filter(function (Patient $patient) use ($attribute, $min, $max): bool {
                 $value = $patient->getAttribute($attribute);
 
@@ -445,12 +476,24 @@ class RegistryStatistics
     }
 
     /**
-     * @param  list<array{label: string, value: int}>  $items
-     * @return array{title: string, unit: string, total: int, unknown: int, items: list<array{label: string, value: int}>}
+     * @param  array<int, ChartItem>  $items
+     * @return array{title: string, unit: string, total: int, unknown: int, items: list<ChartItem>}
      */
     protected function chart(string $title, string $unit, int $total, int $unknown, array $items): array
     {
         return ['title' => $title, 'unit' => $unit, 'total' => $total, 'unknown' => $unknown, 'items' => array_values($items)];
+    }
+
+    /**
+     * Translate an interface string.
+     *
+     * @param  array<string, string|int>  $replace
+     */
+    protected function text(string $key, array $replace = []): string
+    {
+        $translation = __($key, $replace);
+
+        return is_string($translation) ? $translation : $key;
     }
 
     protected function percent(int $part, int $whole): string

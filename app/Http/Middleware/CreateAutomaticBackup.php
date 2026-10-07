@@ -26,7 +26,7 @@ class CreateAutomaticBackup
      */
     public function terminate(Request $request, Response $response): void
     {
-        if ($request->user() === null || ! Cache::add('registry:automatic-backup-check', true, now()->addHour())) {
+        if (app()->runningUnitTests() || $request->user() === null || ! Cache::add('registry:automatic-backup-check', true, now()->addHour())) {
             return;
         }
 

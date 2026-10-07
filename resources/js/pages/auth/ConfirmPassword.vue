@@ -5,34 +5,23 @@ import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useI18n } from '@/composables/useI18n';
 import { store } from '@/routes/password/confirm';
-import {
-    index as confirmOptions,
-    store as confirmStore,
-} from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController';
-import PasskeyVerify from '@/components/PasskeyVerify.vue';
 
-defineOptions({
-    layout: {
-        title: 'Confirm password',
-        description:
-            'This is a secure area of the application. Please confirm your password before continuing.',
-    },
-});
+const { t } = useI18n();
 </script>
 
 <template>
-    <Head title="Confirm password" />
+    <Head :title="t('Confirm password')" />
 
-    <PasskeyVerify
-        :routes="{
-            options: confirmOptions(),
-            submit: confirmStore(),
-        }"
-        label="Confirm with passkey"
-        loading-label="Confirming..."
-        separator="Or confirm with password"
-    />
+    <div class="mb-6 space-y-1.5 text-center">
+        <h1 class="text-xl font-semibold tracking-tight">
+            {{ t('Confirm password') }}
+        </h1>
+        <p class="text-sm text-muted-foreground">
+            {{ t('Please confirm your password before continuing.') }}
+        </p>
+    </div>
 
     <Form
         v-bind="store.form()"
@@ -41,29 +30,25 @@ defineOptions({
     >
         <div class="space-y-6">
             <div class="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label for="password">{{ t('Password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
-                    class="mt-1 block w-full"
                     required
                     autocomplete="current-password"
                     autofocus
                 />
-
                 <InputError :message="errors.password" />
             </div>
 
-            <div class="flex items-center">
-                <Button
-                    class="w-full"
-                    :disabled="processing"
-                    data-test="confirm-password-button"
-                >
-                    <Spinner v-if="processing" />
-                    Confirm password
-                </Button>
-            </div>
+            <Button
+                class="w-full"
+                :disabled="processing"
+                data-test="confirm-password-button"
+            >
+                <Spinner v-if="processing" />
+                {{ t('Confirm password') }}
+            </Button>
         </div>
     </Form>
 </template>
