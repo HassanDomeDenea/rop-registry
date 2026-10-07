@@ -1,11 +1,53 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AuditController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientPrintController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ReviewItemController;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\TreatmentController;
+use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::redirect('/', '/dashboard')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+Route::middleware(['auth'])->group(function () {
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
+    Route::post('patients/{patient}/restore', [PatientController::class, 'restore'])->withTrashed()->name('patients.restore');
+    Route::patch('patients/{patient}/status', [PatientController::class, 'status'])->name('patients.status');
+    Route::get('patients/{patient}/print', PatientPrintController::class)->name('patients.print');
+    Route::resource('patients', PatientController::class);
+
+    Route::scopeBindings()->group(function () {
+        Route::get('patients/{patient}/visits/{visit}/print', [VisitController::class, 'print'])->name('patients.visits.print');
+        Route::resource('patients.visits', VisitController::class)->except(['index', 'show']);
+        Route::resource('patients.treatments', TreatmentController::class)->only(['store', 'update', 'destroy']);
+    });
+
+    Route::post('patients/{patient}/attachments', [AttachmentController::class, 'store'])->name('patients.attachments.store');
+    Route::get('attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
+    Route::patch('attachments/{attachment}', [AttachmentController::class, 'update'])->name('attachments.update');
+    Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+
+    Route::get('review', [ReviewItemController::class, 'index'])->name('review.index');
+    Route::post('patients/{patient}/review-items', [ReviewItemController::class, 'store'])->name('patients.review-items.store');
+    Route::patch('review-items/{reviewItem}', [ReviewItemController::class, 'update'])->name('review-items.update');
+    Route::delete('review-items/{reviewItem}', [ReviewItemController::class, 'destroy'])->name('review-items.destroy');
+
+    Route::get('reminders', ReminderController::class)->name('reminders.index');
+    Route::get('statistics', StatisticsController::class)->name('statistics.index');
+    Route::get('audits', AuditController::class)->name('audits.index');
+
+    Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+    Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+    Route::get('backups/{backup}', [BackupController::class, 'show'])->name('backups.show');
+    Route::delete('backups/{backup}', [BackupController::class, 'destroy'])->name('backups.destroy');
 });
 
 require __DIR__.'/settings.php';

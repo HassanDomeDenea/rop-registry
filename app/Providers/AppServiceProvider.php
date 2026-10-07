@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Attachment;
+use App\Models\Patient;
+use App\Models\Treatment;
+use App\Models\Visit;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -32,6 +37,13 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        Relation::morphMap([
+            'patient' => Patient::class,
+            'visit' => Visit::class,
+            'treatment' => Treatment::class,
+            'attachment' => Attachment::class,
+        ]);
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

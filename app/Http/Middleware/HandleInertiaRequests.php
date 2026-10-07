@@ -2,7 +2,23 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\DeliveryMode;
+use App\Enums\EyeSide;
+use App\Enums\ManagementPlan;
+use App\Enums\Multiplicity;
+use App\Enums\PatientStatus;
+use App\Enums\PlusDisease;
+use App\Enums\RespiratorySupport;
+use App\Enums\RopStatus;
+use App\Enums\RopType;
+use App\Enums\Sex;
+use App\Enums\Stage;
+use App\Enums\TreatmentType;
+use App\Enums\VisitKind;
+use App\Enums\Zone;
+use App\Services\ReminderService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,6 +51,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -42,6 +60,51 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'locale' => $locale,
+            'direction' => config("registry.locales.{$locale}.dir", 'ltr'),
+            'locales' => collect(config('registry.locales'))
+                ->map(fn (array $language, string $code): array => ['code' => $code, 'label' => $language['label']])
+                ->values(),
+            'translations' => fn (): array => $this->translations($locale),
+            'enums' => fn (): array => $this->enums(),
+            'reminderCounts' => fn (): ?array => $request->user() ? app(ReminderService::class)->counts() : null,
+        ];
+    }
+
+    /**
+     * Get the interface strings of the locale, keyed by their English source text.
+     *
+     * @return array<string, string>
+     */
+    protected function translations(string $locale): array
+    {
+        $path = lang_path("{$locale}.json");
+
+        return File::exists($path) ? (array) json_decode((string) File::get($path), true) : [];
+    }
+
+    /**
+     * Get the translated options of every registry enum.
+     *
+     * @return array<string, list<array{value: string, label: string}>>
+     */
+    protected function enums(): array
+    {
+        return [
+            'sex' => Sex::options(),
+            'multiplicity' => Multiplicity::options(),
+            'delivery_mode' => DeliveryMode::options(),
+            'respiratory_support' => RespiratorySupport::options(),
+            'patient_status' => PatientStatus::options(),
+            'zone' => Zone::options(),
+            'stage' => Stage::options(),
+            'rop_status' => RopStatus::options(),
+            'plus_disease' => PlusDisease::options(),
+            'rop_type' => RopType::options(),
+            'management_plan' => ManagementPlan::options(),
+            'visit_kind' => VisitKind::options(),
+            'treatment_type' => TreatmentType::options(),
+            'eye_side' => EyeSide::options(),
         ];
     }
 }
