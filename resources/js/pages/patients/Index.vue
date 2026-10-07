@@ -396,6 +396,8 @@ function printTable() {
             </Button>
         </div>
 
+        <Pagination :paginator="patients" top class="no-print" />
+
         <DataTable
             :columns="columns"
             :rows="patients.data"

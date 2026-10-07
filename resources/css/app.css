@@ -9,8 +9,8 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, 'IBM Plex Sans Arabic', ui-sans-serif, system-ui,
-        sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        Instrument Sans, 'Readex Pro', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
     --radius-lg: var(--radius);
@@ -94,7 +94,7 @@
     body,
     html {
         --font-sans:
-            'Instrument Sans', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui,
+            'Instrument Sans', 'Readex Pro', ui-sans-serif, system-ui,
             sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
             'Segoe UI Symbol', 'Noto Color Emoji';
     }

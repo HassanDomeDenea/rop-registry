@@ -494,5 +494,14 @@
     "Dates are true Excel dates shown as YYYY-MM-DD. Empty cells mean \"not recorded\", never a negative finding.": "التواريخ بصيغة Excel الحقيقية وتظهر بالشكل YYYY-MM-DD. الخلايا الفارغة تعني «غير مسجل» وليست نتيجة سلبية.",
     "Lavender rows had an intravitreal injection performed; peach rows had laser only; grey rows are not identity-confirmed and are excluded from the statistics.": "الصفوف البنفسجية أُجري لها حقن داخل الزجاجية؛ الصفوف الخوخية ليزر فقط؛ الصفوف الرمادية غير مؤكدة الهوية ومستثناة من الإحصائيات.",
     "PMA (postmenstrual age) is calculated from the date of birth, the gestational age and the visit date.": "العمر بعد الطمث (PMA) يُحسب من تاريخ الولادة وعمر الحمل وتاريخ الزيارة.",
-    "The Statistics sheet covers the whole registry and holds values, not formulas: export again after entering new data.": "ورقة الإحصائيات تشمل السجل كله وتحتوي قيماً لا معادلات: أعد التصدير بعد إدخال بيانات جديدة."
+    "The Statistics sheet covers the whole registry and holds values, not formulas: export again after entering new data.": "ورقة الإحصائيات تشمل السجل كله وتحتوي قيماً لا معادلات: أعد التصدير بعد إدخال بيانات جديدة.",
+    "Appearance, language, lists and the administrator account": "المظهر واللغة والقوائم وحساب المدير",
+    "Tick all that apply": "اختر كل ما ينطبق",
+    "Other illnesses or details": "أمراض أخرى أو تفاصيل",
+    "Shown as a checklist on the patient form": "تظهر كقائمة اختيار في استمارة المريض",
+    "Offered while typing the referring doctor. A new name typed on a patient is added here automatically.": "تُقترح أثناء كتابة اسم الطبيب المحيل. أي اسم جديد يُكتب لمريض يُضاف هنا تلقائياً.",
+    "This list is empty": "هذه القائمة فارغة",
+    "Add an entry…": "أضف عنصراً…",
+    "Renaming or deleting an entry changes what is offered from now on. Records already saved keep their text.": "إعادة التسمية أو الحذف تغيّر ما يُقترح من الآن فصاعداً. السجلات المحفوظة سابقاً تبقى بنصها.",
+    "Illnesses": "الأمراض"
 }

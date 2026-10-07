@@ -13,6 +13,7 @@ use App\Enums\RopStatus;
 use App\Enums\RopType;
 use App\Enums\Sex;
 use App\Enums\Stage;
+use App\Enums\SuggestionList;
 use App\Enums\TreatmentType;
 use App\Enums\VisitKind;
 use App\Enums\Zone;
@@ -101,7 +102,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Get the translated options of every registry enum.
      *
-     * @return array<string, list<array{value: string, label: string}>>
+     * @return array<string, list<array{value: string, label: string, en: string}>>
      */
     protected function enums(): array
     {
@@ -120,6 +121,7 @@ class HandleInertiaRequests extends Middleware
             'visit_kind' => VisitKind::options(),
             'treatment_type' => TreatmentType::options(),
             'eye_side' => EyeSide::options(),
+            'suggestion_list' => SuggestionList::options(),
         ];
     }
 }

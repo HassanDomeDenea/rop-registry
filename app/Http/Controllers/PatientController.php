@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PatientStatus;
+use App\Enums\SuggestionList;
 use App\Http\Requests\PatientRequest;
 use App\Models\Audit;
 use App\Models\Patient;
+use App\Models\Suggestion;
 use App\Services\RegistryWorkbook;
 use App\Support\DuplicateFinder;
 use App\Support\RegistryPresenter;
@@ -66,7 +68,7 @@ class PatientController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('patients/Form', ['patient' => null]);
+        return Inertia::render('patients/Form', ['patient' => null, ...$this->suggestions()]);
     }
 
     /**
@@ -75,6 +77,7 @@ class PatientController extends Controller
     public function store(PatientRequest $request): RedirectResponse
     {
         $patient = Patient::query()->create($request->validated());
+        Suggestion::remember(SuggestionList::ReferringDoctor, $patient->referring_doctor);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient registered.')]);
 
@@ -110,7 +113,7 @@ class PatientController extends Controller
      */
     public function edit(Patient $patient): Response
     {
-        return Inertia::render('patients/Form', ['patient' => RegistryPresenter::patient($patient)]);
+        return Inertia::render('patients/Form', ['patient' => RegistryPresenter::patient($patient), ...$this->suggestions()]);
     }
 
     /**
@@ -119,10 +122,24 @@ class PatientController extends Controller
     public function update(PatientRequest $request, Patient $patient): RedirectResponse
     {
         $patient->update($request->validated());
+        Suggestion::remember(SuggestionList::ReferringDoctor, $patient->referring_doctor);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient updated.')]);
 
         return to_route('patients.show', $patient);
+    }
+
+    /**
+     * Get the pick lists of the patient form.
+     *
+     * @return array{illnessOptions: list<string>, doctorOptions: list<string>}
+     */
+    protected function suggestions(): array
+    {
+        return [
+            'illnessOptions' => Suggestion::labels(SuggestionList::Illness),
+            'doctorOptions' => Suggestion::labels(SuggestionList::ReferringDoctor),
+        ];
     }
 
     /**
@@ -268,7 +285,7 @@ class PatientController extends Controller
             $this->text('NICU stay (days)') => fn (Patient $patient) => $patient->nicu_days,
             $this->text('Respiratory support') => fn (Patient $patient) => $patient->respiratory_support?->label(),
             $this->text('Support duration (days)') => fn (Patient $patient) => $patient->support_days,
-            $this->text('Systemic illness') => fn (Patient $patient) => $patient->systemic_illness,
+            $this->text('Systemic illness') => fn (Patient $patient) => $patient->illnessSummary(),
             $this->text('Phone') => fn (Patient $patient) => $patient->phone,
             $this->text('Address') => fn (Patient $patient) => $patient->address,
             $this->text('Status') => fn (Patient $patient) => $patient->status->label(),

@@ -279,7 +279,7 @@ const details = computed(() =>
         },
         {
             label: t('Associated systemic illness'),
-            value: props.patient.systemic_illness,
+            value: props.patient.illness_summary,
         },
         {
             label: t('Referral date'),

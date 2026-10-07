@@ -15,4 +15,5 @@ return [
     'visit_kind' => ['examination' => 'Examination', 'undated_examination' => 'Undated examination', 'treatment_only' => 'Treatment only', 'note_only' => 'Plan / note only', 'uncertain' => 'Attribution uncertain', 'index_pending' => 'Index entry (linkage pending)'],
     'treatment_type' => ['eylea' => 'Eylea injection', 'other_anti_vegf' => 'Other anti-VEGF injection', 'laser' => 'Laser', 'surgery' => 'Surgery', 'other' => 'Other'],
     'eye_side' => ['right' => 'Right eye', 'left' => 'Left eye', 'both' => 'Both eyes'],
+    'suggestion_list' => ['illness' => 'Associated illnesses', 'referring_doctor' => 'Referring doctors'],
 ];

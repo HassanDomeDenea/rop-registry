@@ -14,6 +14,16 @@ use Illuminate\Validation\Rule;
 class PatientRequest extends FormRequest
 {
     /**
+     * An empty checklist is stored as "not recorded".
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('illnesses') === []) {
+            $this->merge(['illnesses' => null]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -37,6 +47,8 @@ class PatientRequest extends FormRequest
             'support_days' => ['nullable', 'integer', 'between:0,400'],
             'o2_days' => ['nullable', 'integer', 'between:0,400'],
             'cpap_days' => ['nullable', 'integer', 'between:0,400'],
+            'illnesses' => ['nullable', 'array', 'max:30'],
+            'illnesses.*' => ['string', 'distinct', 'max:100'],
             'systemic_illness' => ['nullable', 'string', 'max:2000'],
             'phone' => ['nullable', 'string', 'max:40'],
             'phone_alt' => ['nullable', 'string', 'max:40'],

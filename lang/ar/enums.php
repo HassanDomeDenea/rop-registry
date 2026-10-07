@@ -15,4 +15,5 @@ return [
     'visit_kind' => ['examination' => 'فحص', 'undated_examination' => 'فحص غير مؤرخ', 'treatment_only' => 'علاج فقط', 'note_only' => 'خطة / ملاحظة فقط', 'uncertain' => 'نسبة غير مؤكدة', 'index_pending' => 'قيد من السجل (بانتظار الربط)'],
     'treatment_type' => ['eylea' => 'حقن Eylea', 'other_anti_vegf' => 'حقن Anti-VEGF آخر', 'laser' => 'ليزر', 'surgery' => 'جراحة', 'other' => 'أخرى'],
     'eye_side' => ['right' => 'العين اليمنى', 'left' => 'العين اليسرى', 'both' => 'كلتا العينين'],
+    'suggestion_list' => ['illness' => 'الأمراض المرافقة', 'referring_doctor' => 'الأطباء المحيلون'],
 ];

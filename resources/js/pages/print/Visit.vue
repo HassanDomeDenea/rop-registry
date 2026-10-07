@@ -125,7 +125,7 @@ const header = computed(() => [
                     class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
                     dir="auto"
                 >
-                    {{ patient.systemic_illness }}
+                    {{ patient.illness_summary }}
                 </dd>
             </div>
         </dl>

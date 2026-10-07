@@ -10,11 +10,13 @@ import {
 } from '@lucide/vue';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
+import CheckList from '@/components/registry/CheckList.vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
+import SuggestInput from '@/components/registry/SuggestInput.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
 import { Button } from '@/components/ui/button';
@@ -24,7 +26,11 @@ import { daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
 import type { Patient } from '@/types';
 
-const props = defineProps<{ patient: Patient | null }>();
+const props = defineProps<{
+    patient: Patient | null;
+    illnessOptions: string[];
+    doctorOptions: string[];
+}>();
 
 const { t, enumOptions, formatWeeks, formatAge, formatDate } = useI18n();
 
@@ -52,6 +58,11 @@ const form = useForm<Record<string, string | number | null>>({
     notes: props.patient?.notes ?? null,
     status: props.patient?.status ?? 'active',
 });
+
+// The checklist is the only field that is not a single value.
+const illnesses = ref<string[] | null>(props.patient?.illnesses ?? null);
+
+form.transform((data) => ({ ...data, illnesses: illnesses.value }));
 
 const backHref = computed(() =>
     props.patient
@@ -412,11 +423,27 @@ function submit() {
                         <FormField
                             class="col-span-6"
                             :label="t('Associated systemic illness')"
+                            :error="
+                                (form.errors as Record<string, string>)
+                                    .illnesses
+                            "
+                            :hint="t('Tick all that apply')"
+                        >
+                            <CheckList
+                                v-model="illnesses"
+                                :options="illnessOptions"
+                            />
+                        </FormField>
+                        <FormField
+                            class="col-span-6"
+                            :label="t('Other illnesses or details')"
+                            for="systemic_illness"
                             :error="form.errors.systemic_illness"
                         >
-                            <TextArea
+                            <TextInput
+                                id="systemic_illness"
                                 v-model="form.systemic_illness"
-                                :rows="2"
+                                dir="auto"
                             />
                         </FormField>
                     </div>
@@ -442,9 +469,10 @@ function submit() {
                             for="referring_doctor"
                             :error="form.errors.referring_doctor"
                         >
-                            <TextInput
+                            <SuggestInput
                                 id="referring_doctor"
                                 v-model="form.referring_doctor"
+                                :options="doctorOptions"
                                 dir="auto"
                             />
                         </FormField>

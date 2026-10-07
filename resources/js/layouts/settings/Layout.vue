@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { KeyRound, Palette, UserRound } from '@lucide/vue';
+import { KeyRound, ListChecks, Palette, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useI18n } from '@/composables/useI18n';
 import { edit as editAppearance } from '@/routes/appearance';
+import { index as listsIndex } from '@/routes/lists';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
@@ -19,6 +20,7 @@ const items = computed<NavItem[]>(() => [
         href: editAppearance(),
         icon: Palette,
     },
+    { title: t('Lists'), href: listsIndex(), icon: ListChecks },
     { title: t('Profile'), href: editProfile(), icon: UserRound },
     { title: t('Password'), href: editSecurity(), icon: KeyRound },
 ]);
@@ -29,7 +31,7 @@ const items = computed<NavItem[]>(() => [
         <PageHeader
             :title="t('Settings')"
             :description="
-                t('Appearance, language and the administrator account')
+                t('Appearance, language, lists and the administrator account')
             "
         />
 

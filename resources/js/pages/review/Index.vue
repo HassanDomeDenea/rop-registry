@@ -89,6 +89,8 @@ function resolve(item: Row) {
             </div>
         </div>
 
+        <Pagination :paginator="items" top />
+
         <DataTable :columns="columns" :rows="items.data" dense>
             <template #cell-patient_name="{ row }">
                 <Link

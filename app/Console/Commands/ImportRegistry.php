@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Audit;
 use App\Models\Patient;
 use App\Models\Visit;
+use App\Services\SuggestionLists;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -100,6 +101,8 @@ class ImportRegistry extends Command
                 }
             });
         });
+
+        app(SuggestionLists::class)->adoptExistingRecords();
 
         $this->components->info(sprintf(
             'Imported %d patients, %d visits, %d treatments, %d review items and %d scans.',

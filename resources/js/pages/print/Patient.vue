@@ -51,7 +51,7 @@ const header = computed(() => [
     [t('Referring doctor'), props.patient.referring_doctor ?? '—'],
     [t('Parent phone'), props.patient.phone ?? '—'],
     [t('Status'), enumLabel('patient_status', props.patient.status)],
-    [t('Associated systemic illness'), props.patient.systemic_illness ?? '—'],
+    [t('Associated systemic illness'), props.patient.illness_summary ?? '—'],
 ]);
 
 function eye(visit: Visit, side: Eye) {

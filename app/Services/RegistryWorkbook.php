@@ -162,7 +162,7 @@ class RegistryWorkbook
                 $patient->birth_weight_g, $patient->ga_weeks, $patient->ga_days, $patient->multiplicity?->label(),
                 $patient->delivery_mode?->label(), $patient->referral_date, $patient->referring_doctor, $patient->nicu_days,
                 $patient->respiratory_support?->label(), $patient->support_days, $patient->o2_days, $patient->cpap_days,
-                $patient->systemic_illness, $patient->phone, $patient->address, $patient->notes,
+                $patient->illnessSummary(), $patient->phone, $patient->address, $patient->notes,
                 $patient->status->label(), $this->yesNo(! $patient->unverified),
                 $patient->exams_count, $patient->first_visit_date, $patient->last_visit_date, $patient->next_appointment_date,
                 $this->tristate($patient->any_rop), $patient->highest_stage?->label(), $this->yesNo($patient->type_one),

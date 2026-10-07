@@ -3,12 +3,15 @@ import { computed } from 'vue';
 import Pill from '@/components/registry/Pill.vue';
 import type { PillTone } from '@/components/registry/Pill.vue';
 import { useI18n } from '@/composables/useI18n';
-import type { Eye, Visit } from '@/types';
+import type { EnumName, Eye, Visit } from '@/types';
 
 /** A read-only, one-glance summary of the findings of one eye at a visit. */
-const props = defineProps<{ visit: Visit; eye: Eye }>();
+const props = defineProps<{ visit: Visit; eye: Eye; english?: boolean }>();
 
-const { t, enumLabel } = useI18n();
+const { t, enumLabel: translatedLabel, englishLabel } = useI18n();
+
+const enumLabel = (name: EnumName, value: string) =>
+    props.english ? englishLabel(name, value) : translatedLabel(name, value);
 
 const value = (field: string) =>
     (props.visit as unknown as Record<string, string | boolean | null>)[

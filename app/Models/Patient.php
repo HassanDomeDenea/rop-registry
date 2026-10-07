@@ -35,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $referring_doctor
  * @property int|null $nicu_days
  * @property RespiratorySupport|null $respiratory_support
+ * @property list<string>|null $illnesses
  * @property int|null $support_days
  * @property int|null $o2_days
  * @property int|null $cpap_days
@@ -79,7 +80,7 @@ class Patient extends Model
     protected $fillable = [
         'file_number', 'name', 'dob', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
         'delivery_mode', 'referral_date', 'referring_doctor', 'nicu_days', 'respiratory_support',
-        'support_days', 'o2_days', 'cpap_days', 'systemic_illness', 'phone', 'phone_alt', 'address',
+        'support_days', 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone', 'phone_alt', 'address',
         'notes', 'source_notes', 'status', 'unverified',
     ];
 
@@ -226,6 +227,16 @@ class Patient extends Model
     }
 
     /**
+     * Get the ticked illnesses and the free-text remainder as one line.
+     */
+    public function illnessSummary(): ?string
+    {
+        $parts = array_filter([...($this->illnesses ?? []), $this->systemic_illness], filled(...));
+
+        return $parts === [] ? null : implode('; ', $parts);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -241,6 +252,7 @@ class Patient extends Model
             'respiratory_support' => RespiratorySupport::class,
             'status' => PatientStatus::class,
             'unverified' => 'boolean',
+            'illnesses' => 'array',
             'first_visit_date' => 'date:Y-m-d',
             'last_visit_date' => 'date:Y-m-d',
             'next_appointment_date' => 'date:Y-m-d',

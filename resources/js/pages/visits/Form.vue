@@ -297,9 +297,12 @@ function submit() {
             </div>
         </SectionCard>
 
+        <!-- Clinical classification is always written in English. -->
         <SectionCard
-            :title="t('Fundus examination and staging of ROP')"
+            title="Fundus examination and staging of ROP"
             :icon="EyeIcon"
+            dir="ltr"
+            lang="en"
         >
             <template #actions>
                 <Button
@@ -310,7 +313,7 @@ function submit() {
                     @click="copyPrevious"
                 >
                     <Copy />
-                    {{ t('Copy previous findings') }}
+                    Copy previous findings
                 </Button>
                 <Button
                     type="button"
@@ -318,14 +321,14 @@ function submit() {
                     size="sm"
                     @click="markBothNormal"
                 >
-                    {{ t('Both eyes: no ROP, no plus') }}
+                    Both eyes: no ROP, no plus
                 </Button>
             </template>
 
             <div class="grid grid-cols-[1fr_auto_1fr] gap-6">
                 <div>
                     <h3 class="mb-3 text-center text-sm font-semibold">
-                        {{ t('Right eye') }}
+                        Right eye
                         <span class="font-normal text-muted-foreground"
                             >OD</span
                         >
@@ -339,7 +342,7 @@ function submit() {
                         type="button"
                         variant="outline"
                         size="icon-sm"
-                        :title="t('Copy right eye to left eye')"
+                        title="Copy right eye to left eye"
                         @click="copyEye('right', 'left')"
                     >
                         <ArrowLeftRight />
@@ -349,7 +352,7 @@ function submit() {
 
                 <div>
                     <h3 class="mb-3 text-center text-sm font-semibold">
-                        {{ t('Left eye') }}
+                        Left eye
                         <span class="font-normal text-muted-foreground"
                             >OS</span
                         >
@@ -499,8 +502,8 @@ function submit() {
                     :description="formatDate(previous.visit_date)"
                 >
                     <div class="space-y-3">
-                        <EyeSummary :visit="previous" eye="right" />
-                        <EyeSummary :visit="previous" eye="left" />
+                        <EyeSummary :visit="previous" eye="right" english />
+                        <EyeSummary :visit="previous" eye="left" english />
                         <p
                             v-if="previous.management_plan"
                             class="text-xs text-muted-foreground"

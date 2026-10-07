@@ -1,4 +1,4 @@
-export type EnumOption = { value: string; label: string };
+export type EnumOption = { value: string; label: string; en?: string };
 
 export type EnumName =
     | 'sex'
@@ -14,7 +14,8 @@ export type EnumName =
     | 'management_plan'
     | 'visit_kind'
     | 'treatment_type'
-    | 'eye_side';
+    | 'eye_side'
+    | 'suggestion_list';
 
 export type ReminderCounts = {
     today: number;
@@ -69,7 +70,9 @@ export type Patient = PatientRow & {
     support_days: number | null;
     o2_days: number | null;
     cpap_days: number | null;
+    illnesses: string[] | null;
     systemic_illness: string | null;
+    illness_summary: string | null;
     phone_alt: string | null;
     address: string | null;
     notes: string | null;

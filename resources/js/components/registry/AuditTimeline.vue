@@ -72,6 +72,14 @@ function display(field: string, value: unknown) {
         }
     }
 
+    if (field === 'illnesses') {
+        try {
+            return (JSON.parse(String(value)) as string[]).join('; ');
+        } catch {
+            return String(value);
+        }
+    }
+
     if (enumFields[field]) {
         return enumLabel(enumFields[field], String(value));
     }

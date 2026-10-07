@@ -49,6 +49,29 @@ export function useI18n() {
         );
     }
 
+    /** Clinical classification terms in English, whatever the interface language. */
+    function englishOptions(name: EnumName): EnumOption[] {
+        return enumOptions(name).map((option) => ({
+            ...option,
+            label: option.en ?? option.label,
+        }));
+    }
+
+    function englishLabel(
+        name: EnumName,
+        value: string | null | undefined,
+        fallback = '—',
+    ): string {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+
+        return (
+            englishOptions(name).find((option) => option.value === value)
+                ?.label ?? value
+        );
+    }
+
     function formatDate(value: string | null | undefined, fallback = '—') {
         if (!value) {
             return fallback;
@@ -179,6 +202,8 @@ export function useI18n() {
         isRtl,
         enumOptions,
         enumLabel,
+        englishOptions,
+        englishLabel,
         formatDate,
         formatDateTime,
         formatMonth,

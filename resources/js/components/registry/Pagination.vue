@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import type { Paginated } from '@/types';
 
-const props = defineProps<{ paginator: Paginated<unknown> }>();
+const props = defineProps<{ paginator: Paginated<unknown>; top?: boolean }>();
 
 const { isRtl, t } = useI18n();
 
@@ -17,7 +17,8 @@ const pages = computed(() => props.paginator.links.slice(1, -1));
 
 <template>
     <nav
-        class="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm"
+        class="flex flex-wrap items-center justify-between gap-3 px-4 text-sm"
+        :class="top ? 'border-b py-2' : 'border-t py-3'"
         :aria-label="t('Pagination')"
     >
         <p class="text-muted-foreground tabular-nums">

@@ -21,7 +21,9 @@ const props = defineProps<{
     errors: Record<string, string | undefined>;
 }>();
 
-const { t, enumOptions, enumLabel } = useI18n();
+// Zone, stage, plus and type are written in English in clinical practice,
+// so this block is not translated.
+const { englishOptions, englishLabel } = useI18n();
 
 const key = (field: string) => `${props.eye}_${field}`;
 
@@ -35,12 +37,14 @@ const suggestedType = computed(() =>
 );
 
 const zoneOptions = computed(() =>
-    enumOptions('zone').filter((option) => option.value !== 'not_applicable'),
+    englishOptions('zone').filter(
+        (option) => option.value !== 'not_applicable',
+    ),
 );
 
 const yesNo = computed(() => [
-    { value: 'yes', label: t('Yes') },
-    { value: 'no', label: t('No') },
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' },
 ]);
 
 const aggressive = computed({
@@ -59,61 +63,52 @@ const aggressive = computed({
 </script>
 
 <template>
-    <div class="space-y-4">
+    <div class="space-y-4" dir="ltr" lang="en">
         <div class="flex justify-center">
             <ZoneDiagram v-model="form[key('zone')]" :eye="eye" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <FormField
-                :label="t('Dilatation')"
-                :error="errors[key('dilatation')]"
-            >
+            <FormField label="Dilatation" :error="errors[key('dilatation')]">
                 <TextInput v-model="form[key('dilatation')]" dir="auto" />
             </FormField>
-            <FormField :label="t('Lens')" :error="errors[key('lens')]">
+            <FormField label="Lens" :error="errors[key('lens')]">
                 <TextInput v-model="form[key('lens')]" dir="auto" />
             </FormField>
         </div>
 
-        <FormField :label="t('Plus disease')" :error="errors[key('plus')]">
+        <FormField label="Plus disease" :error="errors[key('plus')]">
             <SegmentedControl
                 v-model="form[key('plus')]"
-                :options="enumOptions('plus_disease')"
+                :options="englishOptions('plus_disease')"
             />
         </FormField>
 
         <div class="grid grid-cols-2 gap-4">
-            <FormField :label="t('Zone')" :error="errors[key('zone')]">
+            <FormField label="Zone" :error="errors[key('zone')]">
                 <NativeSelect
                     v-model="form[key('zone')]"
                     :options="zoneOptions"
-                    :placeholder="t('Not recorded')"
+                    placeholder="Not recorded"
                 />
             </FormField>
-            <FormField :label="t('Stage')" :error="errors[key('stage')]">
+            <FormField label="Stage" :error="errors[key('stage')]">
                 <NativeSelect
                     v-model="form[key('stage')]"
-                    :options="enumOptions('stage')"
-                    :placeholder="t('Not recorded')"
+                    :options="englishOptions('stage')"
+                    placeholder="Not recorded"
                 />
             </FormField>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <FormField
-                :label="t('A-ROP (aggressive)')"
-                :error="errors[key('a_rop')]"
-            >
+            <FormField label="A-ROP (aggressive)" :error="errors[key('a_rop')]">
                 <SegmentedControl v-model="aggressive" :options="yesNo" />
             </FormField>
-            <FormField
-                :label="t('Type of ROP')"
-                :error="errors[key('rop_type')]"
-            >
+            <FormField label="Type of ROP" :error="errors[key('rop_type')]">
                 <SegmentedControl
                     v-model="form[key('rop_type')]"
-                    :options="enumOptions('rop_type')"
+                    :options="englishOptions('rop_type')"
                 />
             </FormField>
         </div>
@@ -125,25 +120,19 @@ const aggressive = computed({
             @click="form[key('rop_type')] = suggestedType"
         >
             <Sparkles class="size-3.5 shrink-0" />
-            {{
-                t('ETROP criteria suggest :type — click to apply', {
-                    type: enumLabel('rop_type', suggestedType),
-                })
-            }}
+            ETROP criteria suggest
+            {{ englishLabel('rop_type', suggestedType) }} — click to apply
         </button>
 
-        <FormField :label="t('ROP status')" :error="errors[key('rop_status')]">
+        <FormField label="ROP status" :error="errors[key('rop_status')]">
             <NativeSelect
                 v-model="form[key('rop_status')]"
-                :options="enumOptions('rop_status')"
-                :placeholder="t('Not recorded')"
+                :options="englishOptions('rop_status')"
+                placeholder="Not recorded"
             />
         </FormField>
 
-        <FormField
-            :label="t('Notes for this eye')"
-            :error="errors[key('notes')]"
-        >
+        <FormField label="Notes for this eye" :error="errors[key('notes')]">
             <TextArea v-model="form[key('notes')]" :rows="2" />
         </FormField>
     </div>

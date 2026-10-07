@@ -93,6 +93,10 @@ const reloadDebounced = useDebounceFn(reload, 300);
         />
     </div>
 
+    <div v-if="audits.last_page > 1" class="rounded-xl border bg-card">
+        <Pagination :paginator="audits" top class="border-b-0" />
+    </div>
+
     <AuditTimeline :audits="audits.data" />
 
     <div v-if="audits.total > 0" class="rounded-xl border bg-card">

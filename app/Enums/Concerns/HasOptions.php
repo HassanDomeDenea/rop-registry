@@ -15,14 +15,22 @@ trait HasOptions
     }
 
     /**
+     * Get the English label, used where clinical terms are shown untranslated.
+     */
+    public function englishLabel(): string
+    {
+        return __('enums.'.Str::snake(class_basename(static::class)).'.'.$this->value, [], 'en');
+    }
+
+    /**
      * Get every case as a value / label pair for select inputs.
      *
-     * @return list<array{value: string, label: string}>
+     * @return list<array{value: string, label: string, en: string}>
      */
     public static function options(): array
     {
         return array_map(
-            fn (self $case): array => ['value' => $case->value, 'label' => $case->label()],
+            fn (self $case): array => ['value' => $case->value, 'label' => $case->label(), 'en' => $case->englishLabel()],
             self::cases(),
         );
     }
