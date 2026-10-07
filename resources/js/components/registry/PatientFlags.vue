@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Syringe, Zap } from '@lucide/vue';
+import { AlertTriangle, CircleHelp, Syringe, Zap } from '@lucide/vue';
 import Pill from '@/components/registry/Pill.vue';
 import { useI18n } from '@/composables/useI18n';
 import type { PatientRow } from '@/types';
@@ -30,6 +30,9 @@ const { t, enumLabel } = useI18n();
         </Pill>
         <Pill v-if="patient.had_laser" tone="laser">
             <Zap />{{ t('Laser') }}
+        </Pill>
+        <Pill v-if="patient.unverified" tone="neutral">
+            <CircleHelp />{{ t('Unverified') }}
         </Pill>
         <Pill v-if="patient.treatment_pending" tone="danger">
             <AlertTriangle />{{ t('Treatment pending') }}

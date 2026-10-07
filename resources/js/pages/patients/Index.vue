@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
+    ChevronDown,
+    CircleHelp,
     ClipboardCheck,
     Download,
+    FileSpreadsheet,
+    FileText,
     Printer,
     RotateCcw,
     Search,
@@ -23,6 +27,12 @@ import PatientFlags from '@/components/registry/PatientFlags.vue';
 import Pill from '@/components/registry/Pill.vue';
 import type { PillTone } from '@/components/registry/Pill.vue';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
 import patientRoutes from '@/routes/patients';
 import type { Paginated, PatientRow } from '@/types';
@@ -34,6 +44,7 @@ type Filters = {
     rop: string;
     treatment: string;
     review: boolean;
+    unverified: boolean;
     trashed: boolean;
     sort: string;
     direction: 'asc' | 'desc';
@@ -44,6 +55,7 @@ const props = defineProps<{
     patients: Paginated<PatientRow>;
     filters: Filters;
     trashedCount: number;
+    unverifiedCount: number;
 }>();
 
 const {
@@ -138,7 +150,8 @@ const hasFilters = computed(
         state.sex !== '' ||
         state.rop !== '' ||
         state.treatment !== '' ||
-        state.review,
+        state.review ||
+        state.unverified,
 );
 
 /** Only non-default values are kept in the address bar. */
@@ -150,6 +163,7 @@ function query(): Record<string, string | number | boolean> {
         rop: '',
         treatment: '',
         review: false,
+        unverified: false,
         trashed: false,
         sort: 'created_at',
         direction: 'desc',
@@ -192,6 +206,7 @@ function reset() {
         rop: '',
         treatment: '',
         review: false,
+        unverified: false,
     });
     reload();
 }
@@ -214,6 +229,10 @@ function rowClass(patient: PatientRow) {
 
     if (patient.had_laser) {
         return 'bg-laser/[0.06] hover:bg-laser/10';
+    }
+
+    if (patient.unverified) {
+        return 'text-muted-foreground';
     }
 
     return undefined;
@@ -250,12 +269,53 @@ function printTable() {
             <Printer />
             {{ t('Print') }}
         </Button>
-        <Button as-child variant="outline">
-            <a :href="patientRoutes.export.url({ query: query() })">
-                <Download />
-                {{ t('Export') }}
-            </a>
-        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+                <Button variant="outline">
+                    <Download />
+                    {{ t('Export') }}
+                    <ChevronDown class="opacity-60" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-72">
+                <DropdownMenuItem as-child>
+                    <a
+                        :href="patientRoutes.workbook.url({ query: query() })"
+                        class="flex cursor-pointer items-start gap-3"
+                    >
+                        <FileSpreadsheet class="mt-0.5 size-4 text-success" />
+                        <span>
+                            <span class="block font-medium">
+                                {{ t('Excel workbook') }}
+                            </span>
+                            <span class="block text-xs text-muted-foreground">
+                                {{
+                                    t(
+                                        'One row per baby, visits, treatments, statistics and review log',
+                                    )
+                                }}
+                            </span>
+                        </span>
+                    </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem as-child>
+                    <a
+                        :href="patientRoutes.export.url({ query: query() })"
+                        class="flex cursor-pointer items-start gap-3"
+                    >
+                        <FileText class="mt-0.5 size-4 text-muted-foreground" />
+                        <span>
+                            <span class="block font-medium">
+                                {{ t('CSV patient list') }}
+                            </span>
+                            <span class="block text-xs text-muted-foreground">
+                                {{ t('A plain table of the patients shown') }}
+                            </span>
+                        </span>
+                    </a>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
         <Button as-child>
             <Link :href="patientRoutes.create()">
                 <UserPlus />
@@ -319,6 +379,16 @@ function printTable() {
             >
                 <ClipboardCheck />
                 {{ t('Needs review') }}
+            </Button>
+            <Button
+                v-if="unverifiedCount > 0 || state.unverified"
+                :variant="state.unverified ? 'default' : 'outline'"
+                size="sm"
+                class="h-9"
+                @click="setFilter('unverified', !state.unverified)"
+            >
+                <CircleHelp />
+                {{ t('Unverified (:count)', { count: unverifiedCount }) }}
             </Button>
             <Button v-if="hasFilters" variant="ghost" size="sm" @click="reset">
                 <X />

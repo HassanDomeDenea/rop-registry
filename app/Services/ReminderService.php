@@ -19,7 +19,7 @@ class ReminderService
      */
     protected function active(): Builder
     {
-        return Patient::query()->where('status', PatientStatus::Active);
+        return Patient::query()->verified()->where('status', PatientStatus::Active);
     }
 
     /**

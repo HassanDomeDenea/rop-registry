@@ -25,7 +25,7 @@ class RegistryPresenter
         return [
             ...$patient->only([
                 'id', 'file_number', 'name', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
-                'status', 'phone', 'exams_count', 'any_rop', 'highest_stage', 'any_plus', 'type_one',
+                'status', 'unverified', 'phone', 'exams_count', 'any_rop', 'highest_stage', 'any_plus', 'type_one',
                 'had_injection', 'had_laser', 'treatment_pending',
             ]),
             'dob' => $patient->dob?->format('Y-m-d'),

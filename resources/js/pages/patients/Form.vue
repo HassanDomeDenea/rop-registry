@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Baby, HeartPulse, NotebookPen, Phone, UserRound } from '@lucide/vue';
-import { computed } from 'vue';
+import {
+    Baby,
+    HeartPulse,
+    NotebookPen,
+    Phone,
+    TriangleAlert,
+    UserRound,
+} from '@lucide/vue';
+import { useDebounceFn } from '@vueuse/core';
+import { computed, ref, watch } from 'vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
@@ -18,7 +26,7 @@ import type { Patient } from '@/types';
 
 const props = defineProps<{ patient: Patient | null }>();
 
-const { t, enumOptions, formatWeeks, formatAge } = useI18n();
+const { t, enumOptions, formatWeeks, formatAge, formatDate } = useI18n();
 
 const form = useForm<Record<string, string | number | null>>({
     file_number: props.patient?.file_number ?? null,
@@ -68,6 +76,50 @@ const ageToday = computed(() => {
     return { age, pma: gestational === null ? null : gestational + age };
 });
 
+type Duplicate = {
+    id: number;
+    name: string;
+    file_number: string | null;
+    dob: string | null;
+    ga_weeks: number | null;
+    unverified: boolean;
+    reason: 'name' | 'dob' | 'name_and_dob';
+};
+
+const duplicates = ref<Duplicate[]>([]);
+
+const duplicateReasons: Record<Duplicate['reason'], string> = {
+    name: 'Similar name',
+    dob: 'Same date of birth',
+    name_and_dob: 'Similar name and same date of birth',
+};
+
+/** Look for babies already registered under a similar name or the same birth date. */
+const findDuplicates = useDebounceFn(async () => {
+    const name = String(form.name ?? '').trim();
+
+    if (name.length < 3 && !form.dob) {
+        duplicates.value = [];
+
+        return;
+    }
+
+    const response = await fetch(
+        patientRoutes.duplicates.url({
+            query: {
+                name,
+                dob: form.dob ? String(form.dob) : undefined,
+                ignore: props.patient?.id,
+            },
+        }),
+        { headers: { Accept: 'application/json' } },
+    );
+
+    duplicates.value = response.ok ? await response.json() : [];
+}, 400);
+
+watch(() => [form.name, form.dob], findDuplicates);
+
 function submit() {
     if (props.patient) {
         form.put(patientRoutes.update.url(props.patient.id));
@@ -98,6 +150,58 @@ function submit() {
                 {{ patient ? t('Save changes') : t('Register patient') }}
             </Button>
         </PageHeader>
+
+        <div
+            v-if="duplicates.length"
+            class="rounded-xl border border-warning/40 bg-warning/10 px-5 py-4"
+        >
+            <p
+                class="flex items-center gap-2 text-sm font-semibold text-warning"
+            >
+                <TriangleAlert class="size-4" />
+                {{ t('This baby may already be registered') }}
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+                {{
+                    t(
+                        'Open the record to check before saving. Twins share a date of birth and are registered separately.',
+                    )
+                }}
+            </p>
+            <ul class="mt-3 grid grid-cols-2 gap-2">
+                <li v-for="match in duplicates" :key="match.id">
+                    <a
+                        :href="patientRoutes.show.url(match.id)"
+                        target="_blank"
+                        class="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm hover:bg-muted/60"
+                    >
+                        <span class="min-w-0">
+                            <span class="block truncate font-medium">
+                                <bdi>{{ match.name }}</bdi>
+                            </span>
+                            <span class="block text-xs text-muted-foreground">
+                                <template v-if="match.file_number">
+                                    #{{ match.file_number }} ·
+                                </template>
+                                {{ formatDate(match.dob) }}
+                                <template v-if="match.ga_weeks !== null">
+                                    · {{ t('GA') }}
+                                    {{
+                                        t(':weeks w', { weeks: match.ga_weeks })
+                                    }}
+                                </template>
+                                <template v-if="match.unverified">
+                                    · {{ t('Unverified') }}
+                                </template>
+                            </span>
+                        </span>
+                        <span class="shrink-0 text-xs text-warning">
+                            {{ t(duplicateReasons[match.reason]) }}
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </div>
 
         <div class="grid grid-cols-3 gap-6">
             <div class="col-span-2 space-y-6">

@@ -6,15 +6,20 @@ use App\Enums\PatientStatus;
 use App\Http\Requests\PatientRequest;
 use App\Models\Audit;
 use App\Models\Patient;
+use App\Services\RegistryWorkbook;
+use App\Support\DuplicateFinder;
 use App\Support\RegistryPresenter;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
@@ -52,6 +57,7 @@ class PatientController extends Controller
             'patients' => $patients,
             'filters' => $filters,
             'trashedCount' => Patient::onlyTrashed()->count(),
+            'unverifiedCount' => Patient::query()->where('unverified', true)->count(),
         ]);
     }
 
@@ -131,6 +137,51 @@ class PatientController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Status updated.')]);
 
         return back();
+    }
+
+    /**
+     * Confirm the identity of a patient that was imported without a matching report.
+     */
+    public function verify(Patient $patient): RedirectResponse
+    {
+        $patient->update(['unverified' => false]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient confirmed.')]);
+
+        return back();
+    }
+
+    /**
+     * List registered patients that may be the same baby as the one being entered.
+     */
+    public function duplicates(Request $request, DuplicateFinder $finder): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'dob' => ['nullable', 'date'],
+            'ignore' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json($finder->find(
+            (string) ($validated['name'] ?? ''),
+            $validated['dob'] ?? null,
+            isset($validated['ignore']) ? (int) $validated['ignore'] : null,
+        ));
+    }
+
+    /**
+     * Download the filtered patients as an Excel workbook: one row per baby, plus
+     * long-form visits and treatments, statistics and the review log.
+     */
+    public function workbook(Request $request, RegistryWorkbook $workbook): BinaryFileResponse
+    {
+        $path = storage_path('app/registry-export-'.Str::uuid().'.xlsx');
+
+        $workbook->write($this->query($this->filters($request))->get(), $path);
+
+        return response()
+            ->download($path, 'rop-registry-'.Carbon::now()->format('Ymd-His').'.xlsx')
+            ->deleteFileAfterSend();
     }
 
     /**
@@ -238,7 +289,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
+     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
      */
     protected function filters(Request $request): array
     {
@@ -252,6 +303,7 @@ class PatientController extends Controller
             'rop' => $request->string('rop')->toString(),
             'treatment' => $request->string('treatment')->toString(),
             'review' => $request->boolean('review'),
+            'unverified' => $request->boolean('unverified'),
             'trashed' => $request->boolean('trashed'),
             'sort' => array_key_exists($sort, self::NULLS_LAST) ? $sort : 'created_at',
             'direction' => $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc',
@@ -260,7 +312,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
+     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
      * @return Builder<Patient>
      */
     protected function query(array $filters): Builder
@@ -278,6 +330,7 @@ class PatientController extends Controller
             ->when($filters['treatment'] === 'laser', fn (Builder $query) => $query->where('had_laser', true))
             ->when($filters['treatment'] === 'pending', fn (Builder $query) => $query->where('treatment_pending', true))
             ->when($filters['treatment'] === 'none', fn (Builder $query) => $query->where('had_injection', false)->where('had_laser', false))
+            ->when($filters['unverified'], fn (Builder $query) => $query->where('unverified', true))
             ->when($filters['review'], fn (Builder $query) => $query->whereHas('reviewItems', fn (Builder $query) => $query->whereNull('resolved_at')))
             ->orderByRaw(self::NULLS_LAST[$filters['sort']])
             ->when($filters['sort'] === 'file_number', fn (Builder $query) => $query->orderByRaw(

@@ -18,14 +18,17 @@ class StatisticsController extends Controller
         $filters = $request->validate([
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'unverified' => ['nullable', 'boolean'],
         ]);
 
         $from = isset($filters['from']) ? Date::parse($filters['from'])->startOfDay() : null;
         $to = isset($filters['to']) ? Date::parse($filters['to'])->endOfDay() : null;
 
+        $includeUnverified = $request->boolean('unverified');
+
         return Inertia::render('statistics/Index', [
-            'filters' => ['from' => $from?->format('Y-m-d'), 'to' => $to?->format('Y-m-d')],
-            'statistics' => $statistics->calculate($from, $to),
+            'filters' => ['from' => $from?->format('Y-m-d'), 'to' => $to?->format('Y-m-d'), 'unverified' => $includeUnverified],
+            'statistics' => $statistics->calculate($from, $to, $includeUnverified),
         ]);
     }
 }

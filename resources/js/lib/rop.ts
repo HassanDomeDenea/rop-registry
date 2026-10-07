@@ -52,3 +52,82 @@ export const EYE_FIELDS = [
     'rop_status',
     'notes',
 ] as const;
+
+export type FollowUpSuggestion = {
+    /** Treatment is indicated rather than a further observation interval. */
+    treat: boolean;
+    minWeeks: number;
+    maxWeeks: number;
+};
+
+/**
+ * The longest follow-up interval recommended for one eye by the AAP / AAO / AAPOS
+ * screening statement (Pediatrics 2018), or null when the findings give no basis.
+ * It is a reminder of the published schedule, not a substitute for the examiner.
+ */
+function eyeFollowUp(
+    zone: unknown,
+    stage: unknown,
+    plus: unknown,
+    aggressive: unknown,
+    status: unknown,
+): FollowUpSuggestion | null {
+    if (classifyRop(zone, stage, plus, aggressive) === 'type_1') {
+        return { treat: true, minWeeks: 0, maxWeeks: 0 };
+    }
+
+    const severity = { stage_2: 2, stage_3: 3 }[String(stage)] ?? 0;
+    const regressing = status === 'regressing' || status === 'regressed';
+    const weeks = (min: number, max = min): FollowUpSuggestion => ({
+        treat: false,
+        minWeeks: min,
+        maxWeeks: max,
+    });
+
+    switch (zone) {
+        case 'zone_1':
+            // Immature vascularisation or stage 1-2 in zone I; regressing ROP in zone I.
+            return regressing ? weeks(1, 2) : weeks(1);
+        case 'posterior_zone_2':
+            return regressing ? weeks(1, 2) : weeks(1);
+        case 'zone_2':
+            if (severity === 3) {
+                return weeks(1);
+            }
+
+            if (severity === 2) {
+                return weeks(1, 2);
+            }
+
+            return weeks(2);
+        case 'zone_3':
+            return weeks(2, 3);
+        default:
+            return null;
+    }
+}
+
+/** The follow-up interval for the visit: that of the eye needing the earlier review. */
+export function suggestFollowUp(
+    form: Record<string, unknown>,
+): FollowUpSuggestion | null {
+    const eyes = (['right', 'left'] as const)
+        .map((eye) =>
+            eyeFollowUp(
+                form[`${eye}_zone`],
+                form[`${eye}_stage`],
+                form[`${eye}_plus`],
+                form[`${eye}_a_rop`],
+                form[`${eye}_rop_status`],
+            ),
+        )
+        .filter((value): value is FollowUpSuggestion => value !== null);
+
+    if (eyes.length === 0) {
+        return null;
+    }
+
+    return eyes.reduce((earliest, eye) =>
+        eye.treat || eye.maxWeeks < earliest.maxWeeks ? eye : earliest,
+    );
+}

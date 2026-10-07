@@ -41,9 +41,12 @@ class RegistryStatistics
     /**
      * @return array<string, mixed>
      */
-    public function calculate(?CarbonInterface $from, ?CarbonInterface $to): array
+    public function calculate(?CarbonInterface $from, ?CarbonInterface $to, bool $includeUnverified = false): array
     {
-        $all = Patient::query()->with(['visits', 'treatments'])->get();
+        $all = Patient::query()
+            ->when(! $includeUnverified, fn ($query) => $query->verified())
+            ->with(['visits', 'treatments'])
+            ->get();
 
         $patients = $all->filter(function (Patient $patient) use ($from, $to): bool {
             if ($from === null && $to === null) {
@@ -65,6 +68,7 @@ class RegistryStatistics
             'cohort' => [
                 'patients' => $patients->count(),
                 'registry_total' => $all->count(),
+                'unverified' => Patient::query()->where('unverified', true)->count(),
                 'excluded_undated' => ($from !== null || $to !== null)
                     ? $all->filter(fn (Patient $patient): bool => $this->firstSeen($patient) === null)->count()
                     : 0,

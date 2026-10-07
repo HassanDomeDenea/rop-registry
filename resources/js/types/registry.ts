@@ -38,6 +38,7 @@ export type PatientRow = {
     ga_days: number | null;
     multiplicity: string | null;
     status: string;
+    unverified: boolean;
     phone: string | null;
     referral_date: string | null;
     exams_count: number;

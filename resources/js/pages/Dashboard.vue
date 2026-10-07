@@ -25,6 +25,7 @@ import type { PatientRow } from '@/types';
 defineProps<{
     figures: {
         patients: number;
+        unverified: number;
         active: number;
         with_rop: number;
         treated: number;
@@ -61,7 +62,12 @@ const todayLabel = formatDate(todayIso());
         <StatCard
             :label="t('Patients')"
             :value="formatNumber(figures.patients)"
-            :hint="t(':count in active follow-up', { count: figures.active })"
+            :hint="
+                t(':count in active follow-up', { count: figures.active }) +
+                (figures.unverified
+                    ? ` · ${t(':count unverified', { count: figures.unverified })}`
+                    : '')
+            "
             :icon="Users"
         />
         <StatCard

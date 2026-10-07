@@ -45,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $notes
  * @property string|null $source_notes
  * @property PatientStatus $status
+ * @property bool $unverified
  * @property int $exams_count
  * @property Carbon|null $first_visit_date
  * @property Carbon|null $last_visit_date
@@ -79,7 +80,7 @@ class Patient extends Model
         'file_number', 'name', 'dob', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
         'delivery_mode', 'referral_date', 'referring_doctor', 'nicu_days', 'respiratory_support',
         'support_days', 'o2_days', 'cpap_days', 'systemic_illness', 'phone', 'phone_alt', 'address',
-        'notes', 'source_notes', 'status',
+        'notes', 'source_notes', 'status', 'unverified',
     ];
 
     /**
@@ -123,7 +124,7 @@ class Patient extends Model
      */
     public function attachments(): HasMany
     {
-        return $this->hasMany(Attachment::class)->latest('id');
+        return $this->hasMany(Attachment::class)->orderBy('id');
     }
 
     /**
@@ -196,6 +197,16 @@ class Patient extends Model
         });
     }
 
+    /**
+     * Limit the query to patients whose identity is confirmed.
+     *
+     * @param  Builder<Patient>  $query
+     */
+    public function scopeVerified(Builder $query): void
+    {
+        $query->where('unverified', false);
+    }
+
     public function auditLabel(): string
     {
         return $this->name;
@@ -229,6 +240,7 @@ class Patient extends Model
             'delivery_mode' => DeliveryMode::class,
             'respiratory_support' => RespiratorySupport::class,
             'status' => PatientStatus::class,
+            'unverified' => 'boolean',
             'first_visit_date' => 'date:Y-m-d',
             'last_visit_date' => 'date:Y-m-d',
             'next_appointment_date' => 'date:Y-m-d',

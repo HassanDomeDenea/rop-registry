@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +21,7 @@ class BackupService
 
     public function directory(): string
     {
-        $directory = (string) config('registry.backup.path');
+        $directory = Setting::read('backup_path') ?? (string) config('registry.backup.path');
 
         File::ensureDirectoryExists($directory);
 
@@ -151,6 +153,14 @@ class BackupService
     }
 
     /**
+     * Determine whether the archive holds the attachments as well as the database.
+     */
+    public function includesAttachments(string $type): bool
+    {
+        return in_array($type, ['full', 'safety'], true);
+    }
+
+    /**
      * Create the daily automatic database backup when the previous one is old enough.
      */
     public function createAutomaticBackupIfDue(): ?string
@@ -200,6 +210,10 @@ class BackupService
         } finally {
             File::deleteDirectory($temporary);
         }
+
+        // A backup made by an older version of the application is brought up to the current schema.
+        DB::reconnect();
+        Artisan::call('migrate', ['--force' => true]);
 
         return $safety;
     }

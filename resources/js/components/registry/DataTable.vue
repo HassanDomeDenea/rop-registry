@@ -137,13 +137,16 @@ function onRowClick(row: T, event: MouseEvent) {
                             column.class,
                         ]"
                     >
+                        <!-- A provided slot may render nothing (e.g. no actions for a row). -->
                         <slot
+                            v-if="$slots[`cell-${column.key}`]"
                             :name="`cell-${column.key}`"
                             :row="row"
                             :value="cell(row, column.key)"
-                        >
+                        />
+                        <template v-else>
                             {{ cell(row, column.key) ?? '—' }}
-                        </slot>
+                        </template>
                     </td>
                 </tr>
             </tbody>

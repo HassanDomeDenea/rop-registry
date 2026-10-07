@@ -24,12 +24,13 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'figures' => [
-                'patients' => Patient::query()->count(),
-                'active' => Patient::query()->where('status', PatientStatus::Active)->count(),
-                'with_rop' => Patient::query()->where('any_rop', true)->count(),
-                'treated' => Patient::query()->where(fn ($query) => $query->where('had_injection', true)->orWhere('had_laser', true))->count(),
+                'patients' => Patient::query()->verified()->count(),
+                'unverified' => Patient::query()->where('unverified', true)->count(),
+                'active' => Patient::query()->verified()->where('status', PatientStatus::Active)->count(),
+                'with_rop' => Patient::query()->verified()->where('any_rop', true)->count(),
+                'treated' => Patient::query()->verified()->where(fn ($query) => $query->where('had_injection', true)->orWhere('had_laser', true))->count(),
                 'visits_this_month' => Visit::query()->whereDate('visit_date', '>=', $monthStart)->count(),
-                'new_this_month' => Patient::query()->whereRaw('date(coalesce(first_visit_date, referral_date, created_at)) >= ?', [$monthStart->format('Y-m-d')])->count(),
+                'new_this_month' => Patient::query()->verified()->whereRaw('date(coalesce(first_visit_date, referral_date, created_at)) >= ?', [$monthStart->format('Y-m-d')])->count(),
                 'treatments_this_month' => Treatment::query()->whereDate('performed_date', '>=', $monthStart)->count(),
             ],
             'today' => $reminders->today()->get()->map($present),

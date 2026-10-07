@@ -38,11 +38,12 @@ type Crosstab = {
 };
 
 const props = defineProps<{
-    filters: { from: string | null; to: string | null };
+    filters: { from: string | null; to: string | null; unverified: boolean };
     statistics: {
         cohort: {
             patients: number;
             registry_total: number;
+            unverified: number;
             excluded_undated: number;
         };
         kpis: {
@@ -68,9 +69,11 @@ const { t, formatNumber, formatDate } = useI18n();
 const range = reactive<{
     from: string | number | boolean | null;
     to: string | number | boolean | null;
+    unverified: boolean;
 }>({
     from: props.filters.from,
     to: props.filters.to,
+    unverified: props.filters.unverified,
 });
 
 const sections = computed(() => [
@@ -116,7 +119,9 @@ function apply() {
     router.get(
         statisticsRoutes.index.url(),
         Object.fromEntries(
-            Object.entries(range).filter(([, value]) => value),
+            Object.entries(range)
+                .filter(([, value]) => value)
+                .map(([key, value]) => [key, value === true ? 1 : value]),
         ) as Record<string, string>,
         { preserveState: true, preserveScroll: true },
     );
@@ -219,6 +224,23 @@ function number(value: number | null) {
                 {{ t('All time') }}
             </Button>
         </div>
+        <Button
+            v-if="statistics.cohort.unverified > 0"
+            type="button"
+            size="sm"
+            class="ms-auto"
+            :variant="range.unverified ? 'default' : 'outline'"
+            @click="
+                range.unverified = !range.unverified;
+                apply();
+            "
+        >
+            {{
+                t('Include :count unverified', {
+                    count: statistics.cohort.unverified,
+                })
+            }}
+        </Button>
         <p
             v-if="statistics.cohort.excluded_undated > 0"
             class="basis-full text-xs text-muted-foreground"

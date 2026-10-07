@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Deferred, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
+    BadgeCheck,
     CalendarClock,
+    CircleHelp,
     ClipboardCheck,
     FileClock,
     History,
@@ -206,6 +208,14 @@ function destroyPatient() {
     router.delete(patientRoutes.destroy.url(props.patient.id));
 }
 
+function confirmIdentity() {
+    router.patch(
+        patientRoutes.verify.url(props.patient.id),
+        {},
+        { preserveScroll: true },
+    );
+}
+
 function restorePatient() {
     router.post(patientRoutes.restore.url(props.patient.id));
 }
@@ -299,6 +309,31 @@ const details = computed(() =>
         <Button size="sm" variant="outline" @click="restorePatient">
             <RotateCcw />
             {{ t('Restore') }}
+        </Button>
+    </div>
+
+    <div
+        v-if="patient.unverified"
+        class="flex items-center justify-between gap-4 rounded-lg border bg-muted px-4 py-3 text-sm"
+    >
+        <span class="flex items-start gap-2">
+            <CircleHelp class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span>
+                <span class="font-medium">
+                    {{ t('Identity not confirmed') }}
+                </span>
+                <span class="block text-xs text-muted-foreground">
+                    {{
+                        t(
+                            'This record comes from the index notebook only and may duplicate another patient. It is left out of the statistics and reminders until confirmed.',
+                        )
+                    }}
+                </span>
+            </span>
+        </span>
+        <Button size="sm" variant="outline" @click="confirmIdentity">
+            <BadgeCheck />
+            {{ t('Confirm identity') }}
         </Button>
     </div>
 

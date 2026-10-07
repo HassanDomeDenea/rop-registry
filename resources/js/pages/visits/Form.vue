@@ -6,6 +6,7 @@ import {
     ClipboardList,
     Copy,
     Eye as EyeIcon,
+    Lightbulb,
     Stethoscope,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -20,7 +21,7 @@ import TextInput from '@/components/registry/TextInput.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
-import { EYE_FIELDS } from '@/lib/rop';
+import { EYE_FIELDS, suggestFollowUp } from '@/lib/rop';
 import { addDays, daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
 import type { Eye, Patient, Visit } from '@/types';
@@ -89,6 +90,31 @@ const ages = computed(() => {
 });
 
 const intervals = [1, 2, 3, 4, 6, 8, 12];
+
+const followUp = computed(() => suggestFollowUp(form.data()));
+
+const followUpLabel = computed(() => {
+    const suggestion = followUp.value;
+
+    if (!suggestion) {
+        return null;
+    }
+
+    if (suggestion.treat) {
+        return t(
+            'Type 1 ROP: treatment is indicated, ideally within 72 hours.',
+        );
+    }
+
+    return suggestion.minWeeks === suggestion.maxWeeks
+        ? t('Guideline: re-examine within :count week(s)', {
+              count: suggestion.maxWeeks,
+          })
+        : t('Guideline: re-examine in :min–:max weeks', {
+              min: suggestion.minWeeks,
+              max: suggestion.maxWeeks,
+          });
+});
 
 function planNextVisit(weeks: number) {
     form.next_visit_date = addDays(
@@ -394,6 +420,46 @@ function submit() {
                                 type="date"
                             />
                         </FormField>
+                        <div
+                            v-if="followUp && followUpLabel"
+                            class="rounded-md border border-dashed px-3 py-2 text-xs"
+                            :class="
+                                followUp.treat
+                                    ? 'border-destructive/40 bg-destructive/5 text-destructive'
+                                    : 'border-info/40 bg-info/5 text-info'
+                            "
+                        >
+                            <p class="flex items-start gap-2 font-medium">
+                                <Lightbulb class="mt-0.5 size-3.5 shrink-0" />
+                                {{ followUpLabel }}
+                            </p>
+                            <div
+                                v-if="!followUp.treat"
+                                class="mt-1.5 flex flex-wrap gap-1.5 ps-5"
+                            >
+                                <button
+                                    v-for="weeks in [
+                                        ...new Set([
+                                            followUp.minWeeks,
+                                            followUp.maxWeeks,
+                                        ]),
+                                    ]"
+                                    :key="weeks"
+                                    type="button"
+                                    class="rounded-md bg-info/15 px-2 py-0.5 font-medium hover:bg-info/25"
+                                    @click="planNextVisit(weeks)"
+                                >
+                                    {{ t('Use :count w', { count: weeks }) }}
+                                </button>
+                            </div>
+                            <p class="mt-1.5 ps-5 text-muted-foreground">
+                                {{
+                                    t(
+                                        'From the AAP/AAO 2018 screening schedule, based on the zone, stage and plus entered. A reminder only — the examiner decides.',
+                                    )
+                                }}
+                            </p>
+                        </div>
                         <div class="flex flex-wrap gap-1.5">
                             <button
                                 v-for="weeks in intervals"

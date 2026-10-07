@@ -19,6 +19,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
+    Route::get('patients/workbook', [PatientController::class, 'workbook'])->name('patients.workbook');
+    Route::get('patients/duplicates', [PatientController::class, 'duplicates'])->name('patients.duplicates');
+    Route::patch('patients/{patient}/verify', [PatientController::class, 'verify'])->name('patients.verify');
     Route::post('patients/{patient}/restore', [PatientController::class, 'restore'])->withTrashed()->name('patients.restore');
     Route::patch('patients/{patient}/status', [PatientController::class, 'status'])->name('patients.status');
     Route::get('patients/{patient}/print', PatientPrintController::class)->name('patients.print');
@@ -46,6 +49,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
     Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+    Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
+    Route::put('backups/settings', [BackupController::class, 'settings'])->name('backups.settings');
     Route::get('backups/{backup}', [BackupController::class, 'show'])->name('backups.show');
     Route::delete('backups/{backup}', [BackupController::class, 'destroy'])->name('backups.destroy');
 });
