@@ -71,6 +71,6 @@ class Attachment extends Model
      */
     protected function auditExcluded(): array
     {
-        return ['id', 'created_at', 'updated_at', 'deleted_at', 'disk', 'path'];
+        return ['id', 'patient_id', 'created_at', 'updated_at', 'deleted_at', 'disk', 'path'];
     }
 }

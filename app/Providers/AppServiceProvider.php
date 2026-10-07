@@ -8,6 +8,7 @@ use App\Models\Treatment;
 use App\Models\Visit;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // `artisan serve` passes only a few environment variables to the web server. Without the
+        // Windows temp folder PHP cannot receive uploads, so every attachment would be rejected.
+        ServeCommand::$passthroughVariables = array_values(array_unique([
+            ...ServeCommand::$passthroughVariables, 'TEMP', 'TMP', 'TMPDIR',
+        ]));
     }
 
     /**
