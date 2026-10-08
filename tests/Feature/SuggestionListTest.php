@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PatientStatus;
 use App\Enums\Stage;
 use App\Enums\SuggestionList;
 use App\Models\Patient;
@@ -110,9 +111,8 @@ class SuggestionListTest extends TestCase
     {
         app()->setLocale('ar');
 
-        $option = collect(Stage::options())->firstWhere('value', 'stage_2');
-
-        $this->assertSame('Stage 2', $option['en']);
-        $this->assertNotSame('Stage 2', $option['label']);
+        $this->assertSame('Stage 2', Stage::StageTwo->label());
+        $this->assertSame('Stage 2', Stage::StageTwo->englishLabel());
+        $this->assertNotSame(PatientStatus::Active->englishLabel(), PatientStatus::Active->label());
     }
 }
