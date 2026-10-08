@@ -6,7 +6,12 @@ import { useI18n } from '@/composables/useI18n';
 import type { EnumName, Eye, Visit } from '@/types';
 
 /** A read-only, one-glance summary of the findings of one eye at a visit. */
-const props = defineProps<{ visit: Visit; eye: Eye; english?: boolean }>();
+const props = defineProps<{
+    visit: Visit;
+    eye: Eye;
+    english?: boolean;
+    hideLabel?: boolean;
+}>();
 
 const { t, enumLabel: translatedLabel, englishLabel } = useI18n();
 
@@ -72,7 +77,10 @@ const isEmpty = computed(
 
 <template>
     <div class="min-w-0">
-        <p class="mb-1.5 text-xs font-medium text-muted-foreground">
+        <p
+            v-if="!hideLabel"
+            class="mb-1.5 text-xs font-medium text-muted-foreground"
+        >
             {{ eye === 'right' ? t('Right eye') : t('Left eye') }}
         </p>
         <p v-if="isEmpty" class="text-sm text-muted-foreground">

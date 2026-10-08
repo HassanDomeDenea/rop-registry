@@ -7,6 +7,8 @@ import {
     DatabaseBackup,
     History,
     LayoutGrid,
+    Settings,
+    Stethoscope,
     Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,12 +26,14 @@ import {
 } from '@/components/ui/sidebar';
 import { useI18n } from '@/composables/useI18n';
 import { dashboard } from '@/routes';
+import { edit as editAppearance } from '@/routes/appearance';
 import audits from '@/routes/audits';
 import backups from '@/routes/backups';
 import patients from '@/routes/patients';
 import reminders from '@/routes/reminders';
 import review from '@/routes/review';
 import statistics from '@/routes/statistics';
+import visits from '@/routes/visits';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -38,6 +42,7 @@ const { isRtl, t } = useI18n();
 const registryItems = computed<NavItem[]>(() => [
     { title: t('Dashboard'), href: dashboard(), icon: LayoutGrid },
     { title: t('Patients'), href: patients.index(), icon: Users },
+    { title: t('Visits'), href: visits.index(), icon: Stethoscope },
     {
         title: t('Reminders'),
         href: reminders.index(),
@@ -55,7 +60,11 @@ const maintenanceItems = computed<NavItem[]>(() => [
         badge: page.props.reminderCounts?.review,
     },
     { title: t('Audit log'), href: audits.index(), icon: History },
+]);
+
+const systemItems = computed<NavItem[]>(() => [
     { title: t('Backups'), href: backups.index(), icon: DatabaseBackup },
+    { title: t('Settings'), href: editAppearance(), icon: Settings },
 ]);
 </script>
 
@@ -80,6 +89,7 @@ const maintenanceItems = computed<NavItem[]>(() => [
         <SidebarContent>
             <NavMain :label="t('Registry')" :items="registryItems" />
             <NavMain :label="t('Data quality')" :items="maintenanceItems" />
+            <NavMain :label="t('System')" :items="systemItems" />
         </SidebarContent>
 
         <SidebarFooter>

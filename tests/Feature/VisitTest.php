@@ -171,4 +171,37 @@ class VisitTest extends TestCase
         $this->assertNull($patient->refresh()->any_rop);
         $this->assertSame(0, $patient->exams_count);
     }
+
+    public function test_visits_of_all_patients_are_listed_newest_first_with_search_filters_and_sorting()
+    {
+        $user = User::factory()->create();
+        $first = Patient::factory()->create(['name' => 'أحمد الأول']);
+        $second = Patient::factory()->create(['name' => 'Baby Second']);
+
+        $old = Visit::factory()->for($first)->create(['visit_date' => '2026-05-01', 'right_plus' => 'plus', 'management_plan' => 'eylea']);
+        $new = Visit::factory()->for($second)->create(['visit_date' => '2026-06-01', 'right_plus' => 'none', 'left_plus' => 'none', 'management_plan' => 'observe']);
+
+        // The visits of a patient in the recycle bin are not listed.
+        $removed = Patient::factory()->create();
+        Visit::factory()->for($removed)->create(['visit_date' => '2026-07-01']);
+        $removed->delete();
+
+        $this->get(route('visits.index'))->assertRedirect(route('login'));
+
+        $this->actingAs($user)->get(route('visits.index'))
+            ->assertInertia(fn ($page) => $page
+                ->component('visits/Index')
+                ->has('visits.data', 2)
+                ->where('visits.data.0.id', $new->id)
+                ->where('visits.data.0.patient.name', 'Baby Second')
+                ->where('visits.data.1.id', $old->id));
+
+        $this->actingAs($user)->get(route('visits.index', ['sort' => 'patient', 'direction' => 'asc']))
+            ->assertInertia(fn ($page) => $page->where('visits.data.0.id', $new->id));
+
+        foreach ([['search' => 'احمد'], ['finding' => 'plus'], ['plan' => 'eylea'], ['to' => '2026-05-15']] as $filter) {
+            $this->actingAs($user)->get(route('visits.index', $filter))
+                ->assertInertia(fn ($page) => $page->has('visits.data', 1)->where('visits.data.0.id', $old->id));
+        }
+    }
 }

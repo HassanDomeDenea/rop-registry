@@ -11,12 +11,15 @@ use App\Http\Controllers\ReviewItemController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TreatmentController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\VisitListController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('visits', VisitListController::class)->name('visits.index');
 
     Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
     Route::get('patients/workbook', [PatientController::class, 'workbook'])->name('patients.workbook');

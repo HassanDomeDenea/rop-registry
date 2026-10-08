@@ -507,5 +507,14 @@
     "No patient matches": "لا يوجد مريض مطابق",
     "Show all :count results": "عرض كل النتائج (:count)",
     "Enter": "Enter",
-    "Searching…": "جارٍ البحث…"
+    "Searching…": "جارٍ البحث…",
+    ":count visits of all patients": ":count زيارة لجميع المرضى",
+    "Search by patient, file no., examiner or assessment…": "ابحث بالمريض أو رقم الملف أو الفاحص أو التقييم…",
+    "Any finding": "كل النتائج",
+    "Any plan": "كل الخطط",
+    "Any record type": "كل أنواع السجلات",
+    "No ROP in both eyes": "No ROP في كلتا العينين",
+    "No visit matches these filters": "لا توجد زيارة مطابقة لهذه الفلاتر",
+    "Undated": "غير مؤرخة",
+    "From": "من"
 }
