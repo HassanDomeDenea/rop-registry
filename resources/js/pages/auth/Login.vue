@@ -3,7 +3,6 @@ import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -69,10 +68,8 @@ const { t } = useI18n();
             <InputError :message="errors.password" />
         </div>
 
-        <Label for="remember" class="flex items-center gap-3">
-            <Checkbox id="remember" name="remember" :tabindex="3" />
-            <span>{{ t('Remember me') }}</span>
-        </Label>
+        <!-- Every login is remembered until the administrator logs out. -->
+        <input type="hidden" name="remember" value="on" />
 
         <Button
             type="submit"

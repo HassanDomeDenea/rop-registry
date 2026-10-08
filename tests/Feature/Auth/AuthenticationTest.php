@@ -4,7 +4,9 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -66,5 +68,25 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response->assertTooManyRequests();
+    }
+
+    public function test_login_is_remembered_and_the_session_does_not_run_out_during_a_working_day()
+    {
+        $user = User::factory()->create();
+
+        $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password', 'remember' => 'on'])
+            ->assertCookie(Auth::guard()->getRecallerName());
+
+        $this->assertGreaterThanOrEqual(60 * 24 * 365, config('session.lifetime'));
+    }
+
+    public function test_form_sent_with_an_outdated_token_returns_to_the_page_instead_of_an_error_screen()
+    {
+        Route::post('_expired', fn () => abort(419))->middleware('web');
+
+        $this->actingAs(User::factory()->create())
+            ->from(route('patients.create'))
+            ->post('_expired')
+            ->assertRedirect(route('patients.create'));
     }
 }
