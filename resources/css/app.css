@@ -218,6 +218,28 @@
         color-scheme: dark;
     }
 
+    /*
+      Arabic letters reach further above and below the line than Latin ones. The Latin
+      line heights cut them off inside inputs and truncated labels, so lines get more room.
+    */
+    [dir='rtl'] {
+        --text-xs--line-height: 1.75;
+        --text-sm--line-height: 1.75;
+        --text-base--line-height: 1.75;
+        --text-lg--line-height: 1.7;
+        --text-xl--line-height: 1.6;
+        --text-2xl--line-height: 1.5;
+        --text-3xl--line-height: 1.45;
+        --leading-none: 1.3;
+        --leading-tight: 1.55;
+        --leading-snug: 1.65;
+    }
+
+    [dir='rtl'] .truncate {
+        padding-block: 0.15em;
+        margin-block: -0.15em;
+    }
+
     /* The opened list of a native select takes the popover colours instead of the browser's grey. */
     select option,
     select optgroup {

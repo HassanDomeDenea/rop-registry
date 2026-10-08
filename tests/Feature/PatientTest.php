@@ -185,6 +185,18 @@ class PatientTest extends TestCase
         $this->actingAs($user)->get(route('patients.index', ['search' => 'احمد']))
             ->assertInertia(fn ($page) => $page->has('patients.data', 1));
 
+        // The referring doctor is matched the same way.
+        $referred = Patient::factory()->create(['name' => 'Baby of Example', 'referring_doctor' => 'د. آمنة أحمد']);
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => 'امنه احمد']))
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('patients.0.id', $referred->id);
+
+        // The change log finds records by the same rule.
+        $this->actingAs($user)->get(route('audits.index', ['search' => 'مصطفي']))
+            ->assertInertia(fn ($page) => $page->has('audits.data', 1));
+
         // The key follows the name when it is corrected.
         $patient->update(['name' => 'إيمان علي']);
 

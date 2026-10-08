@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Audit;
+use App\Support\ArabicText;
 use App\Support\RegistryPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class AuditController extends Controller
             ->with(['user', 'patient'])
             ->when($filters['event'] !== '', fn (Builder $query) => $query->where('event', $filters['event']))
             ->when($filters['type'] !== '', fn (Builder $query) => $query->where('auditable_type', $filters['type']))
-            ->when($filters['search'] !== '', fn (Builder $query) => $query->where('label', 'like', '%'.$filters['search'].'%'))
+            ->when($filters['search'] !== '', fn (Builder $query) => $query->where(ArabicText::foldedColumn('label'), 'like', ArabicText::pattern($filters['search'])))
             ->latest('id')
             ->paginate(30)
             ->withQueryString()

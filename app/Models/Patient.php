@@ -10,6 +10,7 @@ use App\Enums\Sex;
 use App\Enums\Stage;
 use App\Models\Concerns\Auditable;
 use App\Services\PatientSummarizer;
+use App\Support\ArabicText;
 use App\Support\DuplicateFinder;
 use Carbon\CarbonInterface;
 use Database\Factories\PatientFactory;
@@ -203,7 +204,7 @@ class Patient extends Model
                 ->orWhere('file_number', 'like', $like)
                 ->orWhere('phone', 'like', $like)
                 ->orWhere('phone_alt', 'like', $like)
-                ->orWhere('referring_doctor', 'like', $like);
+                ->orWhere(ArabicText::foldedColumn('referring_doctor'), 'like', ArabicText::pattern($term));
         });
     }
 
