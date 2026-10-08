@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ config('registry.locales.'.app()->getLocale().'.dir', 'ltr') }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ config('registry.locales.'.app()->getLocale().'.dir', 'ltr') }}" @class(['dark' => ($appearance ?? 'system') == 'dark', 'colorful' => $colorful ?? false])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,6 +27,14 @@
 
             html.dark {
                 background-color: hsl(216 30% 8%);
+            }
+
+            html.colorful {
+                background-color: oklch(0.94 0.04 275);
+            }
+
+            html.colorful.dark {
+                background-color: oklch(0.17 0.04 280);
             }
         </style>
 

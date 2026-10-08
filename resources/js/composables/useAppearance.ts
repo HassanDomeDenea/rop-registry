@@ -8,6 +8,8 @@ export type UseAppearanceReturn = {
     appearance: Ref<Appearance>;
     resolvedAppearance: ComputedRef<ResolvedAppearance>;
     updateAppearance: (value: Appearance) => void;
+    colorful: Ref<boolean>;
+    updateColorful: (value: boolean) => void;
 };
 
 export function updateTheme(value: Appearance): void {
@@ -28,6 +30,15 @@ export function updateTheme(value: Appearance): void {
     } else {
         document.documentElement.classList.toggle('dark', value === 'dark');
     }
+}
+
+/** Switch the colourful skin, which sits on top of the light or dark theme. */
+export function updateColorfulSkin(value: boolean): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    document.documentElement.classList.toggle('colorful', value);
 }
 
 const setCookie = (name: string, value: string, days = 365) => {
@@ -56,6 +67,14 @@ const getStoredAppearance = () => {
     return localStorage.getItem('appearance') as Appearance | null;
 };
 
+const getStoredColorful = (): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return localStorage.getItem('colorful') === 'true';
+};
+
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') {
         return false;
@@ -78,12 +97,14 @@ export function initializeTheme(): void {
     // Initialize theme from saved preference or default to system...
     const savedAppearance = getStoredAppearance();
     updateTheme(savedAppearance || 'system');
+    updateColorfulSkin(getStoredColorful());
 
     // Set up system theme change listener...
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
 const appearance = ref<Appearance>('system');
+const colorful = ref(false);
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {
@@ -94,6 +115,8 @@ export function useAppearance(): UseAppearanceReturn {
         if (savedAppearance) {
             appearance.value = savedAppearance;
         }
+
+        colorful.value = getStoredColorful();
     });
 
     const resolvedAppearance = computed<ResolvedAppearance>(() => {
@@ -116,9 +139,22 @@ export function useAppearance(): UseAppearanceReturn {
         updateTheme(value);
     }
 
+    function updateColorful(value: boolean) {
+        colorful.value = value;
+
+        localStorage.setItem('colorful', String(value));
+
+        // Store in cookie so the server renders the page already coloured...
+        setCookie('colorful', String(value));
+
+        updateColorfulSkin(value);
+    }
+
     return {
         appearance,
         resolvedAppearance,
         updateAppearance,
+        colorful,
+        updateColorful,
     };
 }

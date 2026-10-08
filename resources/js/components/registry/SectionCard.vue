@@ -10,7 +10,10 @@ defineProps<{
 </script>
 
 <template>
-    <section class="rounded-xl border bg-card shadow-xs">
+    <section
+        data-slot="section-card"
+        class="rounded-xl border bg-card shadow-xs"
+    >
         <header
             v-if="title || $slots.actions"
             class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5"
@@ -19,6 +22,7 @@ defineProps<{
                 <component
                     :is="icon"
                     v-if="icon"
+                    data-slot="section-card-icon"
                     class="size-4 shrink-0 text-muted-foreground"
                 />
                 <div class="min-w-0">

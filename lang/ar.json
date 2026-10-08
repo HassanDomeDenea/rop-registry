@@ -573,5 +573,10 @@
     "The backup could not be uploaded. Check the connection and try again.": "تعذّر رفع النسخة الاحتياطية. تحقق من الاتصال وحاول مجدداً.",
     "The backup was uploaded. Choose Restore next to it to load it into the registry.": "تم رفع النسخة الاحتياطية. اختر «استعادة» بجانبها لتحميلها في السجل.",
     "Finished. The list below is up to date.": "اكتمل التنفيذ. القائمة أدناه محدَّثة.",
-    "Every patient, visit and attachment now in the registry is replaced by the contents of the backup. The sign-in account also becomes the one stored in the backup.": "سيُستبدل كل مريض وزيارة ومرفق في السجل الحالي بمحتوى النسخة الاحتياطية. ويصبح حساب الدخول هو الحساب المحفوظ في النسخة."
+    "Every patient, visit and attachment now in the registry is replaced by the contents of the backup. The sign-in account also becomes the one stored in the backup.": "سيُستبدل كل مريض وزيارة ومرفق في السجل الحالي بمحتوى النسخة الاحتياطية. ويصبح حساب الدخول هو الحساب المحفوظ في النسخة.",
+    "Reload the page": "إعادة تحميل الصفحة",
+    "Colours": "الألوان",
+    "Calm": "هادئ",
+    "Colourful": "ملوّن",
+    "Colourful paints panels, buttons and fields with colours and gradients. It follows the light or dark theme.": "الوضع الملوّن يضفي ألواناً وتدرّجات على اللوحات والأزرار والحقول، ويتبع المظهر الفاتح أو الداكن."
 }

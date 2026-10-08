@@ -7,6 +7,7 @@ import {
     Moon,
     Palette,
     Printer,
+    Sparkles,
     Sun,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -33,12 +34,26 @@ function changePrintLocale(code: string | null) {
 
     router.put(update.url(), { print_locale: code }, { preserveScroll: true });
 }
-const { appearance, updateAppearance } = useAppearance();
+const { appearance, updateAppearance, colorful, updateColorful } =
+    useAppearance();
 
 const themes: { value: Appearance; icon: typeof Sun; label: string }[] = [
     { value: 'light', icon: Sun, label: 'Light' },
     { value: 'dark', icon: Moon, label: 'Dark' },
     { value: 'system', icon: Monitor, label: 'Automatic' },
+];
+
+const colourStyles = [
+    {
+        value: false,
+        label: 'Calm',
+        swatch: 'bg-linear-to-r from-slate-300 via-sky-200 to-slate-200',
+    },
+    {
+        value: true,
+        label: 'Colourful',
+        swatch: 'bg-linear-to-r from-indigo-500 via-fuchsia-500 to-amber-400',
+    },
 ];
 
 function changeLocale(code: string) {
@@ -79,6 +94,38 @@ function changeLocale(code: string) {
             >
                 <component :is="theme.icon" class="size-5" />
                 {{ t(theme.label) }}
+            </button>
+        </div>
+    </SectionCard>
+
+    <SectionCard
+        :title="t('Colours')"
+        :description="
+            t(
+                'Colourful paints panels, buttons and fields with colours and gradients. It follows the light or dark theme.',
+            )
+        "
+        :icon="Sparkles"
+    >
+        <div class="grid grid-cols-2 gap-3">
+            <button
+                v-for="style in colourStyles"
+                :key="style.label"
+                type="button"
+                class="flex flex-col gap-3 rounded-lg border px-4 py-3.5 text-sm transition-colors"
+                :class="
+                    colorful === style.value
+                        ? 'border-primary bg-accent font-medium text-accent-foreground ring-1 ring-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                "
+                :aria-pressed="colorful === style.value"
+                @click="updateColorful(style.value)"
+            >
+                <span class="h-8 w-full rounded-md" :class="style.swatch" />
+                <span class="flex w-full items-center justify-between">
+                    {{ t(style.label) }}
+                    <Check v-if="colorful === style.value" class="size-4" />
+                </span>
             </button>
         </div>
     </SectionCard>

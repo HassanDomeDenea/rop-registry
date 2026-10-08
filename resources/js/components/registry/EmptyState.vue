@@ -14,6 +14,7 @@ defineProps<{
     >
         <span
             v-if="icon"
+            data-slot="empty-state-icon"
             class="mb-3 flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"
         >
             <component :is="icon" class="size-5" />

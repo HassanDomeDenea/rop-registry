@@ -18,7 +18,10 @@ function select(value: string) {
 </script>
 
 <template>
-    <div class="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+    <div
+        data-slot="segmented-control"
+        class="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1"
+    >
         <button
             v-for="option in options"
             :key="option.value"

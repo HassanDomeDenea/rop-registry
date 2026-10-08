@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { Bell, Monitor, Moon, Sun, UserPlus } from '@lucide/vue';
 import { computed } from 'vue';
 import GlobalSearch from '@/components/registry/GlobalSearch.vue';
+import ReloadButton from '@/components/ReloadButton.vue';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAppearance } from '@/composables/useAppearance';
@@ -28,6 +29,7 @@ const appearanceIcon = computed(
 
 <template>
     <header
+        data-slot="app-header"
         class="no-print flex h-14 shrink-0 items-center gap-3 border-b border-border/70 px-4"
     >
         <SidebarTrigger class="-ms-1" />
@@ -67,6 +69,7 @@ const appearanceIcon = computed(
                     </span>
                 </Link>
             </Button>
+            <ReloadButton />
         </div>
     </header>
 </template>

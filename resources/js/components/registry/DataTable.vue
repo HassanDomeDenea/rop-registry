@@ -66,7 +66,7 @@ function onRowClick(row: T, event: MouseEvent) {
 
 <template>
     <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
+        <table data-slot="data-table" class="w-full border-collapse text-sm">
             <thead>
                 <tr class="border-b bg-muted/40">
                     <th

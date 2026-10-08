@@ -27,7 +27,10 @@ const { isRtl, t } = useI18n();
                 />
             </Link>
             <div class="min-w-0">
-                <h1 class="truncate text-2xl font-semibold tracking-tight">
+                <h1
+                    data-slot="page-title"
+                    class="truncate text-2xl font-semibold tracking-tight"
+                >
                     {{ title }}
                 </h1>
                 <p

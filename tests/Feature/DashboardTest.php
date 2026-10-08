@@ -24,4 +24,18 @@ class DashboardTest extends TestCase
         $response = $this->get(route('dashboard'));
         $response->assertOk();
     }
+
+    public function test_the_colourful_skin_is_rendered_when_the_browser_asked_for_it()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertDontSee('class="colorful"', false);
+
+        $this->actingAs($user)
+            ->withUnencryptedCookie('colorful', 'true')
+            ->get(route('dashboard'))
+            ->assertSee('class="colorful"', false);
+    }
 }

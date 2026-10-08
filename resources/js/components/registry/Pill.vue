@@ -23,6 +23,7 @@ const tones: Record<PillTone, string> = {
 
 <template>
     <span
+        data-slot="pill"
         class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset [&>svg]:size-3"
         :class="tones[tone]"
     >

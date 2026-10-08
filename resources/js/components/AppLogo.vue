@@ -7,6 +7,7 @@ const { t } = useI18n();
 
 <template>
     <div
+        data-slot="app-logo-mark"
         class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
     >
         <AppLogoIcon class="size-5" />
