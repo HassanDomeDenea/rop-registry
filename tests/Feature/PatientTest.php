@@ -144,4 +144,27 @@ class PatientTest extends TestCase
 
         $this->assertSame(PatientStatus::Discharged, $patient->refresh()->status);
     }
+
+    public function test_top_bar_search_returns_the_first_matching_patients()
+    {
+        $user = User::factory()->create();
+        $match = Patient::factory()->create(['name' => 'Baby of Example', 'file_number' => '777']);
+        Patient::factory()->create(['name' => 'Someone Else', 'file_number' => '12']);
+
+        $this->getJson(route('patients.lookup', ['search' => 'Example']))->assertUnauthorized();
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => 'Example']))
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('patients.0.id', $match->id);
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => '777']))
+            ->assertJsonPath('patients.0.id', $match->id);
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => ' ']))
+            ->assertJsonPath('total', 0);
+    }
 }

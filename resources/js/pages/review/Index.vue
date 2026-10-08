@@ -81,7 +81,6 @@ function resolve(item: Row) {
                 <input
                     v-model="search"
                     type="search"
-                    dir="auto"
                     :placeholder="t('Search by patient…')"
                     class="h-9 w-full rounded-md border border-input bg-transparent ps-8 pe-3 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                     @input="reload"

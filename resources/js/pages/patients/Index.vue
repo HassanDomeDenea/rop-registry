@@ -333,7 +333,6 @@ function printTable() {
                 <input
                     v-model="state.search"
                     type="search"
-                    dir="auto"
                     :placeholder="
                         t(
                             'Search by name, file no., phone or referring doctor…',

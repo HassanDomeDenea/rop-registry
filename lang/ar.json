@@ -503,5 +503,9 @@
     "This list is empty": "هذه القائمة فارغة",
     "Add an entry…": "أضف عنصراً…",
     "Renaming or deleting an entry changes what is offered from now on. Records already saved keep their text.": "إعادة التسمية أو الحذف تغيّر ما يُقترح من الآن فصاعداً. السجلات المحفوظة سابقاً تبقى بنصها.",
-    "Illnesses": "الأمراض"
+    "Illnesses": "الأمراض",
+    "No patient matches": "لا يوجد مريض مطابق",
+    "Show all :count results": "عرض كل النتائج (:count)",
+    "Enter": "Enter",
+    "Searching…": "جارٍ البحث…"
 }

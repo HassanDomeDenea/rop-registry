@@ -71,7 +71,6 @@ const reloadDebounced = useDebounceFn(reload, 300);
             <input
                 v-model="state.search"
                 type="search"
-                dir="auto"
                 :placeholder="t('Search by patient or record…')"
                 class="h-9 w-full rounded-md border border-input bg-card ps-8 pe-3 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 @input="reloadDebounced"

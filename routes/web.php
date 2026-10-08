@@ -20,6 +20,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
     Route::get('patients/workbook', [PatientController::class, 'workbook'])->name('patients.workbook');
+    Route::get('patients/lookup', [PatientController::class, 'lookup'])->name('patients.lookup');
     Route::get('patients/duplicates', [PatientController::class, 'duplicates'])->name('patients.duplicates');
     Route::patch('patients/{patient}/verify', [PatientController::class, 'verify'])->name('patients.verify');
     Route::post('patients/{patient}/restore', [PatientController::class, 'restore'])->withTrashed()->name('patients.restore');

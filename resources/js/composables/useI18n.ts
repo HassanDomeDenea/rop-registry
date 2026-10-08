@@ -21,13 +21,11 @@ export function useI18n() {
     );
 
     function t(key: string, replacements: Replacements = {}): string {
-        let text = page.props.translations[key] ?? key;
+        const text = page.props.translations[key] ?? key;
 
-        for (const [name, value] of Object.entries(replacements)) {
-            text = text.replaceAll(`:${name}`, String(value));
-        }
-
-        return text;
+        return text.replace(/:([a-z_]+)/g, (placeholder, name: string) =>
+            name in replacements ? String(replacements[name]) : placeholder,
+        );
     }
 
     function enumOptions(name: EnumName): EnumOption[] {

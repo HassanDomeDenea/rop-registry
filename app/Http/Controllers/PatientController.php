@@ -169,6 +169,32 @@ class PatientController extends Controller
     }
 
     /**
+     * Find the first few patients matching what is typed in the search box of the top bar.
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $term = trim($request->string('search')->toString());
+
+        if ($term === '') {
+            return response()->json(['total' => 0, 'patients' => []]);
+        }
+
+        $query = Patient::query()->search($term);
+
+        return response()->json([
+            'total' => $query->count(),
+            'patients' => $query->orderBy('name')->limit(8)->get()->map(fn (Patient $patient): array => [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'file_number' => $patient->file_number,
+                'dob' => $patient->dob?->format('Y-m-d'),
+                'phone' => $patient->phone,
+                'unverified' => $patient->unverified,
+            ]),
+        ]);
+    }
+
+    /**
      * List registered patients that may be the same baby as the one being entered.
      */
     public function duplicates(Request $request, DuplicateFinder $finder): JsonResponse
