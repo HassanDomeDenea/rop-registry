@@ -217,6 +217,13 @@
     .dark {
         color-scheme: dark;
     }
+
+    /* The opened list of a native select takes the popover colours instead of the browser's grey. */
+    select option,
+    select optgroup {
+        background-color: var(--popover);
+        color: var(--popover-foreground);
+    }
 }
 
 @media print {

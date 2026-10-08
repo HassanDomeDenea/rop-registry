@@ -167,4 +167,29 @@ class PatientTest extends TestCase
             ->getJson(route('patients.lookup', ['search' => ' ']))
             ->assertJsonPath('total', 0);
     }
+
+    public function test_search_ignores_arabic_spelling_variants_of_the_name()
+    {
+        $user = User::factory()->create();
+        $patient = Patient::factory()->create(['name' => 'أحمد مصطفى فاطمة']);
+        Patient::factory()->create(['name' => 'زينب كريم']);
+
+        // Without the hamza, with alef maqsura replaced, and with ta marbuta typed as ha.
+        foreach (['احمد', 'مصطفي', 'فاطمه'] as $term) {
+            $this->actingAs($user)
+                ->getJson(route('patients.lookup', ['search' => $term]))
+                ->assertJsonPath('total', 1)
+                ->assertJsonPath('patients.0.id', $patient->id);
+        }
+
+        $this->actingAs($user)->get(route('patients.index', ['search' => 'احمد']))
+            ->assertInertia(fn ($page) => $page->has('patients.data', 1));
+
+        // The key follows the name when it is corrected.
+        $patient->update(['name' => 'إيمان علي']);
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => 'ايمان']))
+            ->assertJsonPath('total', 1);
+    }
 }

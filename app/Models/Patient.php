@@ -10,6 +10,7 @@ use App\Enums\Sex;
 use App\Enums\Stage;
 use App\Models\Concerns\Auditable;
 use App\Services\PatientSummarizer;
+use App\Support\DuplicateFinder;
 use Carbon\CarbonInterface;
 use Database\Factories\PatientFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string|null $file_number
  * @property string $name
+ * @property string|null $name_key
  * @property Carbon|null $dob
  * @property Sex $sex
  * @property int|null $birth_weight_g
@@ -97,6 +99,10 @@ class Patient extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (Patient $patient): void {
+            $patient->name_key = app(DuplicateFinder::class)->normalize((string) $patient->name);
+        });
+
         static::saved(function (Patient $patient): void {
             if ($patient->wasChanged('status')) {
                 app(PatientSummarizer::class)->refresh($patient);
@@ -190,7 +196,10 @@ class Patient extends Model
         $query->where(function (Builder $query) use ($term): void {
             $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
 
+            $key = app(DuplicateFinder::class)->normalize($term);
+
             $query->where('name', 'like', $like)
+                ->when($key !== '', fn (Builder $query) => $query->orWhere('name_key', 'like', '%'.$key.'%'))
                 ->orWhere('file_number', 'like', $like)
                 ->orWhere('phone', 'like', $like)
                 ->orWhere('phone_alt', 'like', $like)
@@ -223,7 +232,7 @@ class Patient extends Model
      */
     protected function auditExcluded(): array
     {
-        return ['id', 'created_at', 'updated_at', 'deleted_at', ...self::SUMMARY_COLUMNS];
+        return ['id', 'name_key', 'created_at', 'updated_at', 'deleted_at', ...self::SUMMARY_COLUMNS];
     }
 
     /**
