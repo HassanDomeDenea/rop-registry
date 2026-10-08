@@ -60,6 +60,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Camera inbox
+    |--------------------------------------------------------------------------
+    |
+    | "folder" is where the camera software exports images; the registry takes
+    | over whatever appears there. It can also be set from the Camera inbox
+    | page. "receive_minutes" is how long incoming images go straight to a
+    | patient after "Receive camera images" is pressed on the patient page.
+    |
+    */
+
+    'capture' => [
+        'folder' => env('CAPTURE_FOLDER'),
+        'receive_minutes' => 5,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Reminders
     |--------------------------------------------------------------------------
     |

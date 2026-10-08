@@ -30,7 +30,7 @@ class Attachment extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['visit_id', 'disk', 'path', 'original_name', 'mime_type', 'size', 'caption'];
+    protected $fillable = ['visit_id', 'disk', 'path', 'original_name', 'mime_type', 'size', 'hash', 'caption'];
 
     /**
      * @return BelongsTo<Patient, $this>
@@ -71,6 +71,6 @@ class Attachment extends Model
      */
     protected function auditExcluded(): array
     {
-        return ['id', 'patient_id', 'created_at', 'updated_at', 'deleted_at', 'disk', 'path'];
+        return ['id', 'patient_id', 'created_at', 'updated_at', 'deleted_at', 'disk', 'path', 'hash'];
     }
 }

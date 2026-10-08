@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPrintController;
@@ -20,6 +21,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('visits', VisitListController::class)->name('visits.index');
+
+    Route::get('captures', [CaptureController::class, 'index'])->name('captures.index');
+    Route::get('captures/status', [CaptureController::class, 'status'])->name('captures.status');
+    Route::post('captures/assign', [CaptureController::class, 'assign'])->name('captures.assign');
+    Route::post('captures/discard', [CaptureController::class, 'destroy'])->name('captures.discard');
+    Route::put('captures/settings', [CaptureController::class, 'settings'])->name('captures.settings');
+    Route::post('captures/receive/{patient}', [CaptureController::class, 'receive'])->name('captures.receive');
+    Route::delete('captures/receive', [CaptureController::class, 'stop'])->name('captures.stop');
+    Route::get('captures/{capture}', [CaptureController::class, 'show'])->name('captures.show');
 
     Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
     Route::get('patients/workbook', [PatientController::class, 'workbook'])->name('patients.workbook');

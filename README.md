@@ -10,6 +10,7 @@ It is built for one clinic computer, used by one administrator, in English or Ar
 - **Visits** – an examination form modelled on the paper form: both eyes side by side with zone, stage, plus disease, A-ROP and type; postmenstrual age is calculated; the ETROP type and the guideline follow-up interval are suggested.
 - **Treatments** – injections and laser that were actually performed, kept separate from the recommended plan.
 - **Attachments** – pictures and PDFs per patient (file picker, drag and drop, or paste).
+- **Camera inbox** – images printed to a virtual printer (`capture-images.bat`) or exported into a watched folder wait in an inbox until they are assigned to a patient; "Receive camera images" on a patient sends them there directly.
 - **Reminders** – appointments today and upcoming, planned visits not yet recorded, pending treatments, patients under post-injection surveillance.
 - **Statistics** – by date range, with denominators and unknown counts; patient, eye and session counts are kept apart.
 - **Data quality** – review queue for uncertain facts, duplicate warning, identity-unverified records, recycle bin, full audit log.

@@ -3,6 +3,7 @@ import { Deferred, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     CalendarClock,
+    Camera,
     CircleHelp,
     ClipboardCheck,
     FileClock,
@@ -17,7 +18,7 @@ import {
     Trash2,
     Zap,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AttachmentGallery from '@/components/registry/AttachmentGallery.vue';
 import AuditTimeline from '@/components/registry/AuditTimeline.vue';
 import ConfirmDialog from '@/components/registry/ConfirmDialog.vue';
@@ -32,7 +33,9 @@ import TreatmentDialog from '@/components/registry/TreatmentDialog.vue';
 import VisitCard from '@/components/registry/VisitCard.vue';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCaptureStatus } from '@/composables/useCaptureStatus';
 import { useI18n } from '@/composables/useI18n';
+import captureRoutes from '@/routes/captures';
 import patientRoutes from '@/routes/patients';
 import type {
     Attachment,
@@ -63,6 +66,39 @@ const {
     formatNumber,
     formatRelativeDays,
 } = useI18n();
+
+const { target: captureTarget, refresh: refreshCaptures } = useCaptureStatus();
+
+const receiving = computed(
+    () => captureTarget.value?.patient_id === props.patient.id,
+);
+
+function toggleReceiving() {
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => void refreshCaptures(),
+    };
+
+    if (receiving.value) {
+        router.delete(captureRoutes.stop.url(), options);
+    } else {
+        router.post(captureRoutes.receive.url(props.patient.id), {}, options);
+    }
+}
+
+// Images that arrive for this patient show up in the gallery by themselves.
+watch(
+    () => (receiving.value ? captureTarget.value?.received : undefined),
+    (received, before) => {
+        if (
+            received !== undefined &&
+            before !== undefined &&
+            received > before
+        ) {
+            router.reload({ only: ['attachments'] });
+        }
+    },
+);
 
 type Tab = 'timeline' | 'attachments' | 'review' | 'history';
 
@@ -359,6 +395,22 @@ const details = computed(() =>
                     <Pencil />
                     {{ t('Edit') }}
                 </Link>
+            </Button>
+            <Button
+                :variant="receiving ? 'default' : 'outline'"
+                :title="
+                    t(
+                        'Images that arrive from the camera in the next minutes are attached to this patient',
+                    )
+                "
+                @click="toggleReceiving"
+            >
+                <Camera />
+                {{
+                    receiving
+                        ? t('Receiving camera images…')
+                        : t('Receive camera images')
+                }}
             </Button>
             <Button variant="outline" @click="openTreatmentDialog()">
                 <Syringe />

@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BarChart3,
     BellRing,
+    Camera,
     ClipboardCheck,
     DatabaseBackup,
     History,
@@ -24,11 +25,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useCaptureStatus } from '@/composables/useCaptureStatus';
 import { useI18n } from '@/composables/useI18n';
 import { dashboard } from '@/routes';
 import { edit as editAppearance } from '@/routes/appearance';
 import audits from '@/routes/audits';
 import backups from '@/routes/backups';
+import captures from '@/routes/captures';
 import patients from '@/routes/patients';
 import reminders from '@/routes/reminders';
 import review from '@/routes/review';
@@ -38,11 +41,18 @@ import type { NavItem } from '@/types';
 
 const page = usePage();
 const { isRtl, t } = useI18n();
+const { pending: pendingCaptures } = useCaptureStatus();
 
 const registryItems = computed<NavItem[]>(() => [
     { title: t('Dashboard'), href: dashboard(), icon: LayoutGrid },
     { title: t('Patients'), href: patients.index(), icon: Users },
     { title: t('Visits'), href: visits.index(), icon: Stethoscope },
+    {
+        title: t('Camera inbox'),
+        href: captures.index(),
+        icon: Camera,
+        badge: pendingCaptures.value,
+    },
     {
         title: t('Reminders'),
         href: reminders.index(),
