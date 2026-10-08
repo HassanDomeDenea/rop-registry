@@ -102,7 +102,7 @@ class RegistryWorkbook
         $this->sheet($this->text('ROP Registry'), freezeRow: 3, freezeColumn: 'C', first: true);
 
         $patientColumns = [
-            $this->text('Clinic file no.'), $this->text('Baby name'), $this->text('Date of birth'), $this->text('Sex'),
+            $this->text('Clinic file no.'), $this->text('Baby full name'), $this->text('Mother name'), $this->text('Date of birth'), $this->text('Sex'),
             $this->text('Birth weight (g)'), $this->text('GA weeks'), $this->text('GA days'), $this->text('Multiplicity'),
             $this->text('Delivery mode'), $this->text('Referral date'), $this->text('Referring doctor'), $this->text('NICU stay (days)'),
             $this->text('Respiratory support'), $this->text('Support duration (days)'), $this->text('O₂ days'), $this->text('CPAP days'),
@@ -146,8 +146,8 @@ class RegistryWorkbook
 
         $sheet = $this->writer->getCurrentSheet();
         $sheet->setColumnWidthForRange(14, 1, count($headings));
-        $sheet->setColumnWidth(26, 2);
-        $sheet->setColumnWidth(30, 17, 20);
+        $sheet->setColumnWidth(26, 2, 3);
+        $sheet->setColumnWidth(30, 18, 21);
 
         foreach ($patients as $patient) {
             $fill = match (true) {
@@ -158,7 +158,7 @@ class RegistryWorkbook
             };
 
             $values = [
-                $patient->file_number, $patient->name, $patient->dob, $patient->sex->label(),
+                $patient->file_number, $patient->name, $patient->mother_name, $patient->dob, $patient->sex->label(),
                 $patient->birth_weight_g, $patient->ga_weeks, $patient->ga_days, $patient->multiplicity?->label(),
                 $patient->delivery_mode?->label(), $patient->referral_date, $patient->referring_doctor, $patient->nicu_days,
                 $patient->respiratory_support?->label(), $patient->support_days, $patient->o2_days, $patient->cpap_days,
@@ -197,7 +197,7 @@ class RegistryWorkbook
         ]);
 
         $headings = [
-            $this->text('Clinic file no.'), $this->text('Baby name'), $this->text('Visit'), $this->text('Date'), $this->text('Record type'),
+            $this->text('Clinic file no.'), $this->text('Baby full name'), $this->text('Visit'), $this->text('Date'), $this->text('Record type'),
             $this->text('Age at examination').' ('.$this->text('days').')', $this->text('PMA'), $this->text('PMA').' ('.$this->text('days').')', $this->text('Examiner'),
             ...$eye($this->text('Right eye')), ...$eye($this->text('Left eye')),
             $this->text('Overall assessment'), $this->text('Management plan'), $this->text('Plan details'),
@@ -254,7 +254,7 @@ class RegistryWorkbook
         $this->sheet($this->text('Treatments'), freezeRow: 2, freezeColumn: 'C');
 
         $headings = [
-            $this->text('Clinic file no.'), $this->text('Baby name'), $this->text('Date performed'), $this->text('PMA'),
+            $this->text('Clinic file no.'), $this->text('Baby full name'), $this->text('Date performed'), $this->text('PMA'),
             $this->text('Treatment'), $this->text('Eye'), $this->text('Eyes treated'), $this->text('Agent / dose'),
             $this->text('Performed by'), $this->text('Place'), $this->text('Notes'),
         ];
@@ -355,7 +355,7 @@ class RegistryWorkbook
         $this->sheet($this->text('Review log'), freezeRow: 2);
 
         $headings = [
-            $this->text('Clinic file no.'), $this->text('Baby name'), $this->text('Field'), $this->text('To check'),
+            $this->text('Clinic file no.'), $this->text('Baby full name'), $this->text('Field'), $this->text('To check'),
             $this->text('Source records'), $this->text('Status'), $this->text('Resolution'),
         ];
 

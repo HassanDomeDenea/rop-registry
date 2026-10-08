@@ -18,9 +18,11 @@ import PageHeader from '@/components/registry/PageHeader.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
+import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { EYE_FIELDS, suggestFollowUp } from '@/lib/rop';
 import { addDays, daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
@@ -171,16 +173,23 @@ function markBothNormal() {
     form.management_plan ??= 'observe';
 }
 
+const unsaved = useUnsavedChanges(() => form.isDirty);
+
 function submit() {
+    const options = { onError: unsaved.stopSaving };
+
+    unsaved.startSaving();
+
     if (props.visit) {
         form.put(
             patientRoutes.visits.update.url({
                 patient: props.patient.id,
                 visit: props.visit.id,
             }),
+            options,
         );
     } else {
-        form.post(patientRoutes.visits.store.url(props.patient.id));
+        form.post(patientRoutes.visits.store.url(props.patient.id), options);
     }
 }
 </script>
@@ -204,6 +213,11 @@ function submit() {
                         : t('Follow-up :number', { number: visitNumber - 1 })
                 }}
             </template>
+            <UnsavedChanges
+                v-model:confirming="unsaved.confirming.value"
+                :dirty="form.isDirty"
+                @leave="unsaved.leave"
+            />
             <Button as-child variant="outline">
                 <Link :href="backHref">{{ t('Cancel') }}</Link>
             </Button>

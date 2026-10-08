@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -60,6 +61,35 @@ class ProfileUpdateTest extends TestCase
         $this->actingAs($user)
             ->get(route('appearance.edit'))
             ->assertInertia(fn ($page) => $page->where('locale', 'ar')->where('direction', 'rtl'));
+    }
+
+    public function test_printed_reports_can_use_another_language_than_the_interface()
+    {
+        $user = User::factory()->create(['locale' => 'ar']);
+        $patient = Patient::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('preferences.update'), ['print_locale' => 'en'])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($user)
+            ->get(route('patients.print', $patient))
+            ->assertInertia(fn ($page) => $page->where('locale', 'en')->where('direction', 'ltr'));
+
+        $this->actingAs($user)
+            ->get(route('appearance.edit'))
+            ->assertInertia(fn ($page) => $page->where('locale', 'ar')->where('printLocale', 'en'));
+
+        // Clearing the setting makes printed reports follow the interface again.
+        $this->actingAs($user)->put(route('preferences.update'), ['print_locale' => null]);
+
+        $this->actingAs($user)
+            ->get(route('patients.print', $patient))
+            ->assertInertia(fn ($page) => $page->where('locale', 'ar'));
+
+        $this->actingAs($user)
+            ->put(route('preferences.update'), ['print_locale' => 'fr'])
+            ->assertSessionHasErrors('print_locale');
     }
 
     public function test_unsupported_interface_language_is_rejected()

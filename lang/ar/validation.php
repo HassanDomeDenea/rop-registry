@@ -76,6 +76,7 @@ return [
         'password' => 'كلمة المرور',
         'current_password' => 'كلمة المرور الحالية',
         'locale' => 'اللغة',
+        'mother_name' => 'اسم الأم',
         'file_number' => 'رقم الملف',
         'dob' => 'تاريخ الولادة',
         'sex' => 'الجنس',

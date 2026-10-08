@@ -267,6 +267,7 @@ function updateStatus(status: unknown) {
 const details = computed(() =>
     [
         { label: t('Clinic file no.'), value: props.patient.file_number },
+        { label: t('Mother name'), value: props.patient.mother_name },
         { label: t('Sex'), value: enumLabel('sex', props.patient.sex) },
         { label: t('Date of birth'), value: formatDate(props.patient.dob) },
         {

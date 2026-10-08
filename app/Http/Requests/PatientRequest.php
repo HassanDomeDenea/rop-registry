@@ -33,6 +33,7 @@ class PatientRequest extends FormRequest
         return [
             'file_number' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
             'dob' => ['nullable', 'date', 'before_or_equal:today'],
             'sex' => ['required', Rule::enum(Sex::class)],
             'birth_weight_g' => ['nullable', 'integer', 'between:200,7000'],

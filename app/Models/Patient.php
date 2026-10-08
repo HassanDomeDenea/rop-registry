@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $file_number
  * @property string $name
  * @property string|null $name_key
+ * @property string|null $mother_name
  * @property Carbon|null $dob
  * @property Sex $sex
  * @property int|null $birth_weight_g
@@ -81,7 +82,7 @@ class Patient extends Model
      * @var list<string>
      */
     protected $fillable = [
-        'file_number', 'name', 'dob', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
+        'file_number', 'name', 'mother_name', 'dob', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
         'delivery_mode', 'referral_date', 'referring_doctor', 'nicu_days', 'respiratory_support',
         'support_days', 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone', 'phone_alt', 'address',
         'notes', 'source_notes', 'status', 'unverified',
@@ -201,6 +202,7 @@ class Patient extends Model
 
             $query->where('name', 'like', $like)
                 ->when($key !== '', fn (Builder $query) => $query->orWhere('name_key', 'like', '%'.$key.'%'))
+                ->orWhere(ArabicText::foldedColumn('mother_name'), 'like', ArabicText::pattern($term))
                 ->orWhere('file_number', 'like', $like)
                 ->orWhere('phone', 'like', $like)
                 ->orWhere('phone_alt', 'like', $like)

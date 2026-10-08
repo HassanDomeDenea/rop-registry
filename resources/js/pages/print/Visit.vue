@@ -19,11 +19,9 @@ const props = defineProps<{
 
 const {
     t,
-    direction,
+    english,
     enumLabel,
     formatDate,
-    formatWeeks,
-    formatAge,
     formatGestationalAge,
     formatNumber,
 } = useI18n();
@@ -40,27 +38,24 @@ function finding(eye: Eye, field: string, enumName?: EnumName) {
     }
 
     if (typeof value === 'boolean') {
-        return value ? t('Yes') : t('No');
+        return value ? 'Yes' : 'No';
     }
 
-    return enumName ? enumLabel(enumName, value) : value;
+    return enumName ? english.enumLabel(enumName, value) : value;
 }
 
-const rows = computed(() => [
-    { label: t('Dilatation'), field: 'dilatation' },
-    { label: t('Lens'), field: 'lens' },
-    { label: t('Plus disease'), field: 'plus', enum: 'plus_disease' as const },
-    { label: t('Zone'), field: 'zone', enum: 'zone' as const },
-    { label: t('Stage'), field: 'stage', enum: 'stage' as const },
-    { label: t('A-ROP (aggressive)'), field: 'a_rop' },
-    { label: t('Type of ROP'), field: 'rop_type', enum: 'rop_type' as const },
-    {
-        label: t('ROP status'),
-        field: 'rop_status',
-        enum: 'rop_status' as const,
-    },
-    { label: t('Notes'), field: 'notes' },
-]);
+// The examination is written in English, like the paper form.
+const rows: { label: string; field: string; enum?: EnumName }[] = [
+    { label: 'Dilatation', field: 'dilatation' },
+    { label: 'Lens', field: 'lens' },
+    { label: 'Plus disease', field: 'plus', enum: 'plus_disease' },
+    { label: 'Zone', field: 'zone', enum: 'zone' },
+    { label: 'Stage', field: 'stage', enum: 'stage' },
+    { label: 'A-ROP (aggressive)', field: 'a_rop' },
+    { label: 'Type of ROP', field: 'rop_type', enum: 'rop_type' },
+    { label: 'ROP status', field: 'rop_status', enum: 'rop_status' },
+    { label: 'Notes', field: 'notes' },
+];
 
 const header = computed(() => [
     [t('Patient name'), props.patient.name],
@@ -130,147 +125,145 @@ const header = computed(() => [
             </div>
         </dl>
 
-        <section class="mt-6 border-t pt-4">
-            <h2 class="font-semibold tracking-wide uppercase underline">
-                {{ t('Examination') }}
-            </h2>
-            <dl class="mt-2 grid grid-cols-3 gap-x-8 gap-y-1.5">
-                <div class="flex items-baseline gap-2">
-                    <dt class="shrink-0 font-semibold">
-                        {{ t('Date of examination') }}:
-                    </dt>
-                    <dd
-                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    >
-                        {{ formatDate(visit.visit_date, '') }}
-                    </dd>
-                </div>
-                <div class="flex items-baseline gap-2">
-                    <dt class="shrink-0 font-semibold">{{ t('Age') }}:</dt>
-                    <dd
-                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    >
-                        {{ formatAge(visit.age_days, '') }}
-                    </dd>
-                </div>
-                <div class="flex items-baseline gap-2">
-                    <dt class="shrink-0 font-semibold">{{ t('PMA') }}:</dt>
-                    <dd
-                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    >
-                        {{ formatWeeks(visit.pma_days, '') }}
-                    </dd>
-                </div>
-                <div class="col-span-2 flex items-baseline gap-2">
-                    <dt class="shrink-0 font-semibold">{{ t('Examiner') }}:</dt>
-                    <dd
-                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                        dir="auto"
-                    >
-                        {{ visit.examiner }}
-                    </dd>
-                </div>
-                <div class="flex items-baseline gap-2">
-                    <dt class="shrink-0 font-semibold">{{ t('Visit') }}:</dt>
-                    <dd
-                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    >
-                        {{
-                            visitNumber === 1
-                                ? t('Initial examination')
-                                : t('Follow-up :number', {
-                                      number: visitNumber - 1,
-                                  })
-                        }}
-                    </dd>
-                </div>
-            </dl>
-        </section>
-
-        <!-- The diagrams keep their clinical orientation in both languages. -->
-        <section class="mt-5 grid grid-cols-2 gap-10" dir="ltr">
-            <div v-for="eye in ['right', 'left'] as const" :key="eye">
-                <h3 class="mb-1 text-center font-semibold" :dir="direction">
-                    {{ eye === 'right' ? t('Right eye') : t('Left eye') }}
-                </h3>
-                <div class="flex justify-center">
-                    <ZoneDiagram
-                        :model-value="record[`${eye}_zone`]"
-                        :eye="eye"
-                        readonly
-                    />
-                </div>
-                <ol class="mt-3 space-y-1.5" :dir="direction">
-                    <li
-                        v-for="(row, index) in rows"
-                        :key="row.field"
-                        class="flex items-baseline gap-2"
-                    >
-                        <span class="shrink-0 font-semibold">
-                            {{ index + 1 }}. {{ row.label }}:
-                        </span>
-                        <span
+        <!-- From here on the report is in English and left to right, whatever its language. -->
+        <div dir="ltr" lang="en">
+            <section class="mt-6 border-t pt-4">
+                <h2 class="font-semibold tracking-wide uppercase underline">
+                    Examination
+                </h2>
+                <dl class="mt-2 grid grid-cols-3 gap-x-8 gap-y-1.5">
+                    <div class="flex items-baseline gap-2">
+                        <dt class="shrink-0 font-semibold">
+                            Date of examination:
+                        </dt>
+                        <dd
+                            class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        >
+                            {{ english.formatDate(visit.visit_date, '') }}
+                        </dd>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <dt class="shrink-0 font-semibold">Age:</dt>
+                        <dd
+                            class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        >
+                            {{ english.formatAge(visit.age_days, '') }}
+                        </dd>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <dt class="shrink-0 font-semibold">PMA:</dt>
+                        <dd
+                            class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        >
+                            {{ english.formatWeeks(visit.pma_days, '') }}
+                        </dd>
+                    </div>
+                    <div class="col-span-2 flex items-baseline gap-2">
+                        <dt class="shrink-0 font-semibold">Examiner:</dt>
+                        <dd
                             class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
                             dir="auto"
                         >
-                            {{ finding(eye, row.field, row.enum) }}
-                        </span>
-                    </li>
-                </ol>
-            </div>
-        </section>
+                            {{ visit.examiner }}
+                        </dd>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <dt class="shrink-0 font-semibold">Visit:</dt>
+                        <dd
+                            class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        >
+                            {{
+                                visitNumber === 1
+                                    ? 'Initial examination'
+                                    : `Follow-up ${visitNumber - 1}`
+                            }}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
 
-        <section class="mt-6 space-y-2 border-t pt-4">
-            <p class="flex items-baseline gap-2">
-                <span class="shrink-0 font-semibold"
-                    >{{ t('Overall assessment') }}:</span
-                >
-                <span
-                    class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    dir="auto"
-                >
-                    {{ visit.assessment }}
-                </span>
-            </p>
-            <p class="flex items-baseline gap-2">
-                <span class="shrink-0 font-semibold"
-                    >{{ t('Management plan') }}:</span
-                >
-                <span
-                    class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
-                    dir="auto"
-                >
-                    {{
-                        [
-                            enumLabel(
-                                'management_plan',
-                                visit.management_plan,
-                                '',
-                            ),
-                            visit.management_notes,
-                        ]
-                            .filter(Boolean)
-                            .join(' — ')
-                    }}
-                </span>
-            </p>
-            <p class="flex items-baseline gap-2">
-                <span class="shrink-0 font-semibold"
-                    >{{ t('Next appointment') }}:</span
-                >
-                <span
-                    class="min-h-5 w-48 border-b border-dotted border-neutral-400"
-                >
-                    {{ formatDate(visit.next_visit_date, '') }}
-                </span>
-            </p>
-        </section>
+            <section class="mt-5 grid grid-cols-2 gap-10">
+                <div v-for="eye in ['right', 'left'] as const" :key="eye">
+                    <h3 class="mb-1 text-center font-semibold">
+                        {{ eye === 'right' ? 'Right eye' : 'Left eye' }}
+                    </h3>
+                    <div class="flex justify-center">
+                        <ZoneDiagram
+                            :model-value="record[`${eye}_zone`]"
+                            :eye="eye"
+                            readonly
+                        />
+                    </div>
+                    <ol class="mt-3 space-y-1.5">
+                        <li
+                            v-for="(row, index) in rows"
+                            :key="row.field"
+                            class="flex items-baseline gap-2"
+                        >
+                            <span class="shrink-0 font-semibold">
+                                {{ index + 1 }}. {{ row.label }}:
+                            </span>
+                            <span
+                                class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                                dir="auto"
+                            >
+                                {{ finding(eye, row.field, row.enum) }}
+                            </span>
+                        </li>
+                    </ol>
+                </div>
+            </section>
 
-        <div class="mt-14 flex justify-end">
-            <div
-                class="w-56 border-t border-neutral-500 pt-1 text-center text-xs"
-            >
-                {{ t('Signature') }}
+            <section class="mt-6 space-y-2 border-t pt-4">
+                <p class="flex items-baseline gap-2">
+                    <span class="shrink-0 font-semibold"
+                        >Overall assessment:</span
+                    >
+                    <span
+                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        dir="auto"
+                    >
+                        {{ visit.assessment }}
+                    </span>
+                </p>
+                <p class="flex items-baseline gap-2">
+                    <span class="shrink-0 font-semibold">Management plan:</span>
+                    <span
+                        class="min-h-5 flex-1 border-b border-dotted border-neutral-400"
+                        dir="auto"
+                    >
+                        {{
+                            [
+                                english.enumLabel(
+                                    'management_plan',
+                                    visit.management_plan,
+                                    '',
+                                ),
+                                visit.management_notes,
+                            ]
+                                .filter(Boolean)
+                                .join(' — ')
+                        }}
+                    </span>
+                </p>
+                <p class="flex items-baseline gap-2">
+                    <span class="shrink-0 font-semibold"
+                        >Next appointment:</span
+                    >
+                    <span
+                        class="min-h-5 w-48 border-b border-dotted border-neutral-400"
+                    >
+                        {{ english.formatDate(visit.next_visit_date, '') }}
+                    </span>
+                </p>
+            </section>
+
+            <div class="mt-14 flex justify-end">
+                <div
+                    class="w-56 border-t border-neutral-500 pt-1 text-center text-xs"
+                >
+                    Signature
+                </div>
             </div>
         </div>
     </PrintSheet>

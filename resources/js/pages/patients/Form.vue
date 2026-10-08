@@ -19,9 +19,11 @@ import SegmentedControl from '@/components/registry/SegmentedControl.vue';
 import SuggestInput from '@/components/registry/SuggestInput.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
+import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
 import type { Patient } from '@/types';
@@ -37,6 +39,7 @@ const { t, enumOptions, formatWeeks, formatAge, formatDate } = useI18n();
 const form = useForm<Record<string, string | number | null>>({
     file_number: props.patient?.file_number ?? null,
     name: props.patient?.name ?? '',
+    mother_name: props.patient?.mother_name ?? null,
     dob: props.patient?.dob ?? null,
     sex: props.patient?.sex ?? 'unknown',
     birth_weight_g: props.patient?.birth_weight_g ?? null,
@@ -131,11 +134,23 @@ const findDuplicates = useDebounceFn(async () => {
 
 watch(() => [form.name, form.dob], findDuplicates);
 
+const savedIllnesses = JSON.stringify(illnesses.value);
+
+const isDirty = computed(
+    () => form.isDirty || JSON.stringify(illnesses.value) !== savedIllnesses,
+);
+
+const unsaved = useUnsavedChanges(() => isDirty.value);
+
 function submit() {
+    const options = { onError: unsaved.stopSaving };
+
+    unsaved.startSaving();
+
     if (props.patient) {
-        form.put(patientRoutes.update.url(props.patient.id));
+        form.put(patientRoutes.update.url(props.patient.id), options);
     } else {
-        form.post(patientRoutes.store.url());
+        form.post(patientRoutes.store.url(), options);
     }
 }
 </script>
@@ -153,6 +168,11 @@ function submit() {
             "
             :back-href="backHref"
         >
+            <UnsavedChanges
+                v-model:confirming="unsaved.confirming.value"
+                :dirty="isDirty"
+                @leave="unsaved.leave"
+            />
             <Button as-child variant="outline">
                 <Link :href="backHref">{{ t('Cancel') }}</Link>
             </Button>
@@ -220,7 +240,7 @@ function submit() {
                     <div class="grid grid-cols-6 gap-4">
                         <FormField
                             class="col-span-4"
-                            :label="t('Baby name')"
+                            :label="t('Baby full name')"
                             for="name"
                             :error="form.errors.name"
                             required
@@ -243,6 +263,18 @@ function submit() {
                                 id="file_number"
                                 v-model="form.file_number"
                                 dir="ltr"
+                            />
+                        </FormField>
+                        <FormField
+                            class="col-span-6"
+                            :label="t('Mother name')"
+                            for="mother_name"
+                            :error="form.errors.mother_name"
+                        >
+                            <TextInput
+                                id="mother_name"
+                                v-model="form.mother_name"
+                                dir="auto"
                             />
                         </FormField>
                         <FormField

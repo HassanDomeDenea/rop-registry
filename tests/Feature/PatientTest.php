@@ -32,6 +32,7 @@ class PatientTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('patients.store'), [
             'name' => 'طفل تجريبي',
+            'mother_name' => 'أم تجريبية',
             'sex' => 'male',
             'dob' => '2026-05-16',
             'ga_weeks' => 30,
@@ -43,6 +44,7 @@ class PatientTest extends TestCase
 
         $response->assertRedirect(route('patients.show', $patient));
         $this->assertSame('طفل تجريبي', $patient->name);
+        $this->assertSame('أم تجريبية', $patient->mother_name);
         $this->assertSame(Sex::Male, $patient->sex);
         $this->assertSame(1400, $patient->birth_weight_g);
 
@@ -192,6 +194,14 @@ class PatientTest extends TestCase
             ->getJson(route('patients.lookup', ['search' => 'امنه احمد']))
             ->assertJsonPath('total', 1)
             ->assertJsonPath('patients.0.id', $referred->id);
+
+        // So is the mother's name.
+        $mothered = Patient::factory()->create(['name' => 'Baby of Another', 'mother_name' => 'هدى إبراهيم']);
+
+        $this->actingAs($user)
+            ->getJson(route('patients.lookup', ['search' => 'هدي ابراهيم']))
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('patients.0.id', $mothered->id);
 
         // The change log finds records by the same rule.
         $this->actingAs($user)->get(route('audits.index', ['search' => 'مصطفي']))

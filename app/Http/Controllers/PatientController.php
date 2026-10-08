@@ -299,6 +299,7 @@ class PatientController extends Controller
         return [
             $this->text('File no.') => fn (Patient $patient) => $patient->file_number,
             $this->text('Name') => fn (Patient $patient) => $patient->name,
+            $this->text('Mother name') => fn (Patient $patient) => $patient->mother_name,
             $this->text('Date of birth') => fn (Patient $patient) => $patient->dob?->format('Y-m-d'),
             $this->text('Sex') => fn (Patient $patient) => $patient->sex->label(),
             $this->text('Birth weight (g)') => fn (Patient $patient) => $patient->birth_weight_g,

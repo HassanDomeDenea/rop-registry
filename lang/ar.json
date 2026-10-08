@@ -66,7 +66,7 @@
     "Automatic follows the theme of this computer": "التلقائي يتبع مظهر هذا الحاسوب",
     "Automatic · database": "تلقائي · قاعدة البيانات",
     "Available backups": "النسخ الاحتياطية المتوفرة",
-    "Baby name": "اسم الطفل",
+    "Baby full name": "اسم الطفل الثلاثي",
     "Back": "رجوع",
     "Back to patients": "العودة إلى المرضى",
     "Back up database": "نسخ قاعدة البيانات",
@@ -212,6 +212,7 @@
     "Most posterior zone per affected eye": "أكثر Zone خلفية لكل عين مصابة",
     "Move patient to the recycle bin": "نقل المريض إلى سلة المحذوفات",
     "Move this patient to the recycle bin?": "نقل هذا المريض إلى سلة المحذوفات؟",
+    "Mother name": "اسم الأم",
     "Move to recycle bin": "نقل إلى السلة",
     "Multiple births": "تعدد الولادة",
     "Multiplicity": "تعدد الولادة",
@@ -555,5 +556,12 @@
     ":count image(s) attached to :name, on the visit of today.": "تم إرفاق :count صورة بـ :name ضمن زيارة اليوم.",
     ":count image(s) attached to :name.": "تم إرفاق :count صورة بـ :name.",
     "Images discarded.": "تم حذف الصور.",
-    "Camera folder updated.": "تم تحديث مجلد الكاميرا."
+    "Camera folder updated.": "تم تحديث مجلد الكاميرا.",
+    "Print language": "لغة الطباعة",
+    "The language of printed reports. Examination findings are always printed in English.": "لغة التقارير المطبوعة. تُطبع نتائج الفحص دائماً بالإنجليزية.",
+    "Same as the interface": "نفس لغة الواجهة",
+    "Unsaved changes": "تغييرات غير محفوظة",
+    "Leave without saving?": "المغادرة دون حفظ؟",
+    "The changes on this page have not been saved and will be lost.": "التغييرات في هذه الصفحة لم تُحفظ وستُفقد.",
+    "Leave without saving": "مغادرة دون حفظ"
 }

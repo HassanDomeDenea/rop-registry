@@ -15,15 +15,16 @@ const props = defineProps<{
 
 const {
     t,
+    english,
     enumLabel,
     formatDate,
-    formatWeeks,
     formatGestationalAge,
     formatNumber,
 } = useI18n();
 
 const header = computed(() => [
     [t('Patient name'), props.patient.name],
+    [t('Mother name'), props.patient.mother_name ?? '—'],
     [t('File no.'), props.patient.file_number ?? '—'],
     [t('Date of birth'), formatDate(props.patient.dob)],
     [t('Sex'), enumLabel('sex', props.patient.sex)],
@@ -54,16 +55,18 @@ const header = computed(() => [
     [t('Associated systemic illness'), props.patient.illness_summary ?? '—'],
 ]);
 
+/** The findings of one eye, in English like every examination detail on a printed report. */
 function eye(visit: Visit, side: Eye) {
     const record = visit as unknown as Record<string, string | boolean | null>;
+    const label = english.enumLabel;
 
     const parts = [
-        enumLabel('rop_status', record[`${side}_rop_status`] as string, ''),
-        enumLabel('zone', record[`${side}_zone`] as string, ''),
-        enumLabel('stage', record[`${side}_stage`] as string, ''),
-        enumLabel('plus_disease', record[`${side}_plus`] as string, ''),
+        label('rop_status', record[`${side}_rop_status`] as string, ''),
+        label('zone', record[`${side}_zone`] as string, ''),
+        label('stage', record[`${side}_stage`] as string, ''),
+        label('plus_disease', record[`${side}_plus`] as string, ''),
         record[`${side}_a_rop`] === true ? 'A-ROP' : '',
-        enumLabel(
+        label(
             'rop_type',
             (record[`${side}_rop_type`] ??
                 record[`${side}_suggested_type`]) as string,
@@ -90,128 +93,147 @@ function eye(visit: Visit, side: Eye) {
             </div>
         </dl>
 
-        <h2 class="mt-7 mb-2 font-semibold">{{ t('Examinations') }}</h2>
-        <table class="w-full border-collapse text-xs">
-            <thead>
-                <tr
-                    class="border-y border-neutral-400 bg-neutral-100 text-start"
-                >
-                    <th class="px-2 py-1.5 text-start font-semibold">#</th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('Date') }}
-                    </th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('PMA') }}
-                    </th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('Right eye') }}
-                    </th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('Left eye') }}
-                    </th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('Plan') }}
-                    </th>
-                    <th class="px-2 py-1.5 text-start font-semibold">
-                        {{ t('Next visit') }}
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr
-                    v-for="(visit, index) in visits"
-                    :key="visit.id"
-                    class="border-b border-neutral-200 align-top"
-                >
-                    <td class="px-2 py-1.5 tabular-nums">{{ index + 1 }}</td>
-                    <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
-                        {{ formatDate(visit.visit_date) }}
-                    </td>
-                    <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
-                        {{ formatWeeks(visit.pma_days) }}
-                    </td>
-                    <td class="px-2 py-1.5">{{ eye(visit, 'right') }}</td>
-                    <td class="px-2 py-1.5">{{ eye(visit, 'left') }}</td>
-                    <td class="px-2 py-1.5">
-                        {{
-                            enumLabel('management_plan', visit.management_plan)
-                        }}
-                        <span
-                            v-if="visit.assessment"
-                            class="block text-neutral-500"
-                            dir="auto"
-                        >
-                            {{ visit.assessment }}
-                        </span>
-                    </td>
-                    <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
-                        {{ formatDate(visit.next_visit_date) }}
-                    </td>
-                </tr>
-                <tr v-if="visits.length === 0">
-                    <td
-                        colspan="7"
-                        class="px-2 py-4 text-center text-neutral-500"
-                    >
-                        {{ t('No visits recorded yet') }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <template v-if="treatments.length">
-            <h2 class="mt-7 mb-2 font-semibold">
-                {{ t('Treatments performed') }}
-            </h2>
+        <!-- Examinations and treatments are in English and left to right, whatever the language. -->
+        <div dir="ltr" lang="en">
+            <h2 class="mt-7 mb-2 font-semibold">Examinations</h2>
             <table class="w-full border-collapse text-xs">
                 <thead>
-                    <tr class="border-y border-neutral-400 bg-neutral-100">
+                    <tr
+                        class="border-y border-neutral-400 bg-neutral-100 text-start"
+                    >
+                        <th class="px-2 py-1.5 text-start font-semibold">#</th>
                         <th class="px-2 py-1.5 text-start font-semibold">
-                            {{ t('Date') }}
+                            Date
                         </th>
                         <th class="px-2 py-1.5 text-start font-semibold">
-                            {{ t('PMA') }}
+                            PMA
                         </th>
                         <th class="px-2 py-1.5 text-start font-semibold">
-                            {{ t('Treatment') }}
+                            Right eye
                         </th>
                         <th class="px-2 py-1.5 text-start font-semibold">
-                            {{ t('Eye') }}
+                            Left eye
                         </th>
                         <th class="px-2 py-1.5 text-start font-semibold">
-                            {{ t('Notes') }}
+                            Plan
+                        </th>
+                        <th class="px-2 py-1.5 text-start font-semibold">
+                            Next visit
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr
-                        v-for="treatment in treatments"
-                        :key="treatment.id"
+                        v-for="(visit, index) in visits"
+                        :key="visit.id"
                         class="border-b border-neutral-200 align-top"
                     >
-                        <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
-                            {{ formatDate(treatment.performed_date) }}
+                        <td class="px-2 py-1.5 tabular-nums">
+                            {{ index + 1 }}
                         </td>
                         <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
-                            {{ formatWeeks(treatment.pma_days) }}
+                            {{ english.formatDate(visit.visit_date) }}
                         </td>
+                        <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
+                            {{ english.formatWeeks(visit.pma_days) }}
+                        </td>
+                        <td class="px-2 py-1.5">{{ eye(visit, 'right') }}</td>
+                        <td class="px-2 py-1.5">{{ eye(visit, 'left') }}</td>
                         <td class="px-2 py-1.5">
-                            {{ enumLabel('treatment_type', treatment.type) }}
-                        </td>
-                        <td class="px-2 py-1.5">
-                            {{ enumLabel('eye_side', treatment.eye) }}
-                        </td>
-                        <td class="px-2 py-1.5" dir="auto">
                             {{
-                                [treatment.agent, treatment.notes]
-                                    .filter(Boolean)
-                                    .join(' · ')
+                                english.enumLabel(
+                                    'management_plan',
+                                    visit.management_plan,
+                                )
                             }}
+                            <span
+                                v-if="visit.assessment"
+                                class="block text-neutral-500"
+                                dir="auto"
+                            >
+                                {{ visit.assessment }}
+                            </span>
+                        </td>
+                        <td class="px-2 py-1.5 whitespace-nowrap tabular-nums">
+                            {{ english.formatDate(visit.next_visit_date) }}
+                        </td>
+                    </tr>
+                    <tr v-if="visits.length === 0">
+                        <td
+                            colspan="7"
+                            class="px-2 py-4 text-center text-neutral-500"
+                        >
+                            No visits recorded yet
                         </td>
                     </tr>
                 </tbody>
             </table>
-        </template>
+
+            <template v-if="treatments.length">
+                <h2 class="mt-7 mb-2 font-semibold">Treatments performed</h2>
+                <table class="w-full border-collapse text-xs">
+                    <thead>
+                        <tr class="border-y border-neutral-400 bg-neutral-100">
+                            <th class="px-2 py-1.5 text-start font-semibold">
+                                Date
+                            </th>
+                            <th class="px-2 py-1.5 text-start font-semibold">
+                                PMA
+                            </th>
+                            <th class="px-2 py-1.5 text-start font-semibold">
+                                Treatment
+                            </th>
+                            <th class="px-2 py-1.5 text-start font-semibold">
+                                Eye
+                            </th>
+                            <th class="px-2 py-1.5 text-start font-semibold">
+                                Notes
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="treatment in treatments"
+                            :key="treatment.id"
+                            class="border-b border-neutral-200 align-top"
+                        >
+                            <td
+                                class="px-2 py-1.5 whitespace-nowrap tabular-nums"
+                            >
+                                {{
+                                    english.formatDate(treatment.performed_date)
+                                }}
+                            </td>
+                            <td
+                                class="px-2 py-1.5 whitespace-nowrap tabular-nums"
+                            >
+                                {{ english.formatWeeks(treatment.pma_days) }}
+                            </td>
+                            <td class="px-2 py-1.5">
+                                {{
+                                    english.enumLabel(
+                                        'treatment_type',
+                                        treatment.type,
+                                    )
+                                }}
+                            </td>
+                            <td class="px-2 py-1.5">
+                                {{
+                                    english.enumLabel('eye_side', treatment.eye)
+                                }}
+                            </td>
+                            <td class="px-2 py-1.5" dir="auto">
+                                {{
+                                    [treatment.agent, treatment.notes]
+                                        .filter(Boolean)
+                                        .join(' · ')
+                                }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </template>
+        </div>
 
         <template v-if="patient.notes">
             <h2 class="mt-7 mb-2 font-semibold">{{ t('Notes') }}</h2>

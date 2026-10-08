@@ -63,6 +63,7 @@ export type PatientRow = {
 };
 
 export type Patient = PatientRow & {
+    mother_name: string | null;
     delivery_mode: string | null;
     referring_doctor: string | null;
     nicu_days: number | null;

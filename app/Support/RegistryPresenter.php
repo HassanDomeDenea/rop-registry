@@ -55,7 +55,7 @@ class RegistryPresenter
         return [
             ...self::patientRow($patient),
             ...$patient->only([
-                'delivery_mode', 'referring_doctor', 'nicu_days', 'respiratory_support', 'support_days',
+                'mother_name', 'delivery_mode', 'referring_doctor', 'nicu_days', 'respiratory_support', 'support_days',
                 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone_alt', 'address', 'notes', 'source_notes',
             ]),
             'illness_summary' => $patient->illnessSummary(),

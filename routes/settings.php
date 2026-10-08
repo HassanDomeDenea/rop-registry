@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth'])->group(function () {
     Route::get('settings', fn () => to_route('appearance.edit'));
 
-    Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
+    Route::get('settings/appearance', [PreferencesController::class, 'edit'])->name('appearance.edit');
     Route::put('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
     Route::get('settings/lists', [SuggestionController::class, 'index'])->name('lists.index');

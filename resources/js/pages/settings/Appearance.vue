@@ -1,14 +1,38 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Check, Languages, Monitor, Moon, Palette, Sun } from '@lucide/vue';
+import {
+    Check,
+    Languages,
+    Monitor,
+    Moon,
+    Palette,
+    Printer,
+    Sun,
+} from '@lucide/vue';
+import { computed } from 'vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import { useAppearance } from '@/composables/useAppearance';
 import { useI18n } from '@/composables/useI18n';
 import { update } from '@/routes/preferences';
 import type { Appearance } from '@/types';
 
+const props = defineProps<{ printLocale: string | null }>();
+
 const page = usePage();
 const { t, locale } = useI18n();
+
+const printLanguages = computed(() => [
+    { code: null, label: t('Same as the interface') },
+    ...page.props.locales,
+]);
+
+function changePrintLocale(code: string | null) {
+    if (code === props.printLocale) {
+        return;
+    }
+
+    router.put(update.url(), { print_locale: code }, { preserveScroll: true });
+}
 const { appearance, updateAppearance } = useAppearance();
 
 const themes: { value: Appearance; icon: typeof Sun; label: string }[] = [
@@ -80,6 +104,35 @@ function changeLocale(code: string) {
             >
                 {{ language.label }}
                 <Check v-if="locale === language.code" class="size-4" />
+            </button>
+        </div>
+    </SectionCard>
+
+    <SectionCard
+        :title="t('Print language')"
+        :description="
+            t(
+                'The language of printed reports. Examination findings are always printed in English.',
+            )
+        "
+        :icon="Printer"
+    >
+        <div class="grid grid-cols-3 gap-3">
+            <button
+                v-for="language in printLanguages"
+                :key="language.code ?? 'interface'"
+                type="button"
+                class="flex items-center justify-between rounded-lg border px-4 py-3.5 text-sm transition-colors"
+                :class="
+                    printLocale === language.code
+                        ? 'border-primary bg-accent font-medium text-accent-foreground ring-1 ring-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                "
+                :aria-pressed="printLocale === language.code"
+                @click="changePrintLocale(language.code)"
+            >
+                {{ language.label }}
+                <Check v-if="printLocale === language.code" class="size-4" />
             </button>
         </div>
     </SectionCard>

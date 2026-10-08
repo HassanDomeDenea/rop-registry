@@ -3,6 +3,88 @@ import { computed } from 'vue';
 import type { EnumName, EnumOption } from '@/types';
 
 type Replacements = Record<string, string | number>;
+type Translate = (key: string, replacements?: Replacements) => string;
+
+function interpolate(text: string, replacements: Replacements = {}): string {
+    return text.replace(/:([a-z_]+)/g, (placeholder, name: string) =>
+        name in replacements ? String(replacements[name]) : placeholder,
+    );
+}
+
+/** The formatters that depend on the language, so that they can also be built for English. */
+function createFormatters(t: Translate, intlLocale: () => string) {
+    function formatDate(value: string | null | undefined, fallback = '—') {
+        if (!value) {
+            return fallback;
+        }
+
+        const date = new Date(
+            value.length === 10 ? `${value}T00:00:00` : value,
+        );
+
+        return new Intl.DateTimeFormat(intlLocale(), {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        }).format(date);
+    }
+
+    function formatNumber(value: number | null | undefined, fallback = '—') {
+        return value === null || value === undefined
+            ? fallback
+            : new Intl.NumberFormat(intlLocale()).format(value);
+    }
+
+    /** Weeks + days, the conventional notation for gestational and postmenstrual age. */
+    function formatWeeks(days: number | null | undefined, fallback = '—') {
+        if (days === null || days === undefined) {
+            return fallback;
+        }
+
+        return t(':weeks w :days d', {
+            weeks: Math.floor(days / 7),
+            days: days % 7,
+        });
+    }
+
+    function formatGestationalAge(
+        weeks: number | null | undefined,
+        days: number | null | undefined,
+        fallback = '—',
+    ) {
+        if (weeks === null || weeks === undefined) {
+            return fallback;
+        }
+
+        return days
+            ? t(':weeks w :days d', { weeks, days })
+            : t(':weeks w', { weeks });
+    }
+
+    function formatAge(days: number | null | undefined, fallback = '—') {
+        if (days === null || days === undefined) {
+            return fallback;
+        }
+
+        if (days < 14) {
+            return t(':count days', { count: days });
+        }
+
+        if (days < 120) {
+            return t(':count weeks', { count: Math.floor(days / 7) });
+        }
+
+        return t(':count months', { count: Math.floor(days / 30.4375) });
+    }
+
+    return {
+        formatDate,
+        formatNumber,
+        formatWeeks,
+        formatGestationalAge,
+        formatAge,
+    };
+}
 
 /**
  * Translations are keyed by their English source text, exactly like Laravel's
@@ -21,11 +103,7 @@ export function useI18n() {
     );
 
     function t(key: string, replacements: Replacements = {}): string {
-        const text = page.props.translations[key] ?? key;
-
-        return text.replace(/:([a-z_]+)/g, (placeholder, name: string) =>
-            name in replacements ? String(replacements[name]) : placeholder,
-        );
+        return interpolate(page.props.translations[key] ?? key, replacements);
     }
 
     function enumOptions(name: EnumName): EnumOption[] {
@@ -70,21 +148,14 @@ export function useI18n() {
         );
     }
 
-    function formatDate(value: string | null | undefined, fallback = '—') {
-        if (!value) {
-            return fallback;
-        }
+    const formatters = createFormatters(t, () => intlLocale.value);
 
-        const date = new Date(
-            value.length === 10 ? `${value}T00:00:00` : value,
-        );
-
-        return new Intl.DateTimeFormat(intlLocale.value, {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        }).format(date);
-    }
+    /** The examination findings are printed in English, whatever the language of the report. */
+    const english = {
+        t: interpolate,
+        enumLabel: englishLabel,
+        ...createFormatters(interpolate, () => 'en-GB'),
+    };
 
     function formatDateTime(value: string | null | undefined, fallback = '—') {
         if (!value) {
@@ -105,54 +176,6 @@ export function useI18n() {
             month: 'short',
             year: '2-digit',
         }).format(new Date(`${value}-01T00:00:00`));
-    }
-
-    function formatNumber(value: number | null | undefined, fallback = '—') {
-        return value === null || value === undefined
-            ? fallback
-            : new Intl.NumberFormat(intlLocale.value).format(value);
-    }
-
-    /** Weeks + days, the conventional notation for gestational and postmenstrual age. */
-    function formatWeeks(days: number | null | undefined, fallback = '—') {
-        if (days === null || days === undefined) {
-            return fallback;
-        }
-
-        return t(':weeks w :days d', {
-            weeks: Math.floor(days / 7),
-            days: days % 7,
-        });
-    }
-
-    function formatGestationalAge(
-        weeks: number | null | undefined,
-        days: number | null | undefined,
-        fallback = '—',
-    ) {
-        if (weeks === null || weeks === undefined) {
-            return fallback;
-        }
-
-        return days
-            ? t(':weeks w :days d', { weeks, days })
-            : t(':weeks w', { weeks });
-    }
-
-    function formatAge(days: number | null | undefined, fallback = '—') {
-        if (days === null || days === undefined) {
-            return fallback;
-        }
-
-        if (days < 14) {
-            return t(':count days', { count: days });
-        }
-
-        if (days < 120) {
-            return t(':count weeks', { count: Math.floor(days / 7) });
-        }
-
-        return t(':count months', { count: Math.floor(days / 30.4375) });
     }
 
     /** Describe a day offset relative to today, e.g. "In 3 days" or "5 days ago". */
@@ -202,13 +225,10 @@ export function useI18n() {
         enumLabel,
         englishOptions,
         englishLabel,
-        formatDate,
+        english,
+        ...formatters,
         formatDateTime,
         formatMonth,
-        formatNumber,
-        formatWeeks,
-        formatGestationalAge,
-        formatAge,
         formatRelativeDays,
         formatBytes,
     };
