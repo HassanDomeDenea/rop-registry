@@ -563,5 +563,15 @@
     "Unsaved changes": "تغييرات غير محفوظة",
     "Leave without saving?": "المغادرة دون حفظ؟",
     "The changes on this page have not been saved and will be lost.": "التغييرات في هذه الصفحة لم تُحفظ وستُفقد.",
-    "Leave without saving": "مغادرة دون حفظ"
+    "Leave without saving": "مغادرة دون حفظ",
+    "Upload a backup": "رفع نسخة احتياطية",
+    "Another backup or restore is still running. Try again when it has finished.": "هناك نسخ احتياطي أو استعادة قيد التنفيذ. حاول مجدداً بعد انتهائه.",
+    "The backup is being prepared. This can take several minutes; this page updates by itself.": "يجري تجهيز النسخة الاحتياطية. قد يستغرق ذلك عدة دقائق، وتتحدّث هذه الصفحة تلقائياً.",
+    "The backup is being restored. This can take several minutes; this page updates by itself.": "تجري استعادة النسخة الاحتياطية. قد يستغرق ذلك عدة دقائق، وتتحدّث هذه الصفحة تلقائياً.",
+    "The last backup or restore did not finish: :message": "لم يكتمل آخر نسخ احتياطي أو استعادة: :message",
+    "Uploading :name… :percent%": "جارٍ رفع :name… :percent%",
+    "The backup could not be uploaded. Check the connection and try again.": "تعذّر رفع النسخة الاحتياطية. تحقق من الاتصال وحاول مجدداً.",
+    "The backup was uploaded. Choose Restore next to it to load it into the registry.": "تم رفع النسخة الاحتياطية. اختر «استعادة» بجانبها لتحميلها في السجل.",
+    "Finished. The list below is up to date.": "اكتمل التنفيذ. القائمة أدناه محدَّثة.",
+    "Every patient, visit and attachment now in the registry is replaced by the contents of the backup. The sign-in account also becomes the one stored in the backup.": "سيُستبدل كل مريض وزيارة ومرفق في السجل الحالي بمحتوى النسخة الاحتياطية. ويصبح حساب الدخول هو الحساب المحفوظ في النسخة."
 }

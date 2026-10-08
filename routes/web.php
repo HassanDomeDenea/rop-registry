@@ -13,6 +13,7 @@ use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TreatmentController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitListController;
+use App\Http\Middleware\EnsureCameraInboxIsEnabled;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => to_route('dashboard'))->name('home');
@@ -22,14 +23,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('visits', VisitListController::class)->name('visits.index');
 
-    Route::get('captures', [CaptureController::class, 'index'])->name('captures.index');
-    Route::get('captures/status', [CaptureController::class, 'status'])->name('captures.status');
-    Route::post('captures/assign', [CaptureController::class, 'assign'])->name('captures.assign');
-    Route::post('captures/discard', [CaptureController::class, 'destroy'])->name('captures.discard');
-    Route::put('captures/settings', [CaptureController::class, 'settings'])->name('captures.settings');
-    Route::post('captures/receive/{patient}', [CaptureController::class, 'receive'])->name('captures.receive');
-    Route::delete('captures/receive', [CaptureController::class, 'stop'])->name('captures.stop');
-    Route::get('captures/{capture}', [CaptureController::class, 'show'])->name('captures.show');
+    Route::middleware(EnsureCameraInboxIsEnabled::class)->group(function () {
+        Route::get('captures', [CaptureController::class, 'index'])->name('captures.index');
+        Route::get('captures/status', [CaptureController::class, 'status'])->name('captures.status');
+        Route::post('captures/assign', [CaptureController::class, 'assign'])->name('captures.assign');
+        Route::post('captures/discard', [CaptureController::class, 'destroy'])->name('captures.discard');
+        Route::put('captures/settings', [CaptureController::class, 'settings'])->name('captures.settings');
+        Route::post('captures/receive/{patient}', [CaptureController::class, 'receive'])->name('captures.receive');
+        Route::delete('captures/receive', [CaptureController::class, 'stop'])->name('captures.stop');
+        Route::get('captures/{capture}', [CaptureController::class, 'show'])->name('captures.show');
+    });
 
     Route::get('patients/export', [PatientController::class, 'export'])->name('patients.export');
     Route::get('patients/workbook', [PatientController::class, 'workbook'])->name('patients.workbook');
@@ -65,6 +68,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
     Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
     Route::put('backups/settings', [BackupController::class, 'settings'])->name('backups.settings');
+    Route::get('backups/upload-target', [BackupController::class, 'uploadTarget'])->name('backups.upload');
     Route::get('backups/{backup}', [BackupController::class, 'show'])->name('backups.show');
     Route::delete('backups/{backup}', [BackupController::class, 'destroy'])->name('backups.destroy');
 });

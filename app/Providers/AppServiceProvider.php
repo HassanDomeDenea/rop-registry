@@ -6,6 +6,8 @@ use App\Models\Attachment;
 use App\Models\Patient;
 use App\Models\Treatment;
 use App\Models\Visit;
+use App\Services\BackupService;
+use App\Services\HostedBackupService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Console\ServeCommand;
@@ -26,6 +28,12 @@ class AppServiceProvider extends ServiceProvider
         ServeCommand::$passthroughVariables = array_values(array_unique([
             ...ServeCommand::$passthroughVariables, 'TEMP', 'TMP', 'TMPDIR',
         ]));
+
+        // On SQLite a backup is a copy of the database file. A registry on a database server
+        // writes the same archives, but builds them from its tables and keeps them in storage.
+        $this->app->bind(BackupService::class, fn (): BackupService => config('database.connections.'.config('database.default').'.driver') === 'sqlite'
+            ? new BackupService
+            : new HostedBackupService);
     }
 
     /**

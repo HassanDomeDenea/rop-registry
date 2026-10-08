@@ -15,10 +15,10 @@ class RestoreRegistry extends Command
     public function handle(BackupService $backups): int
     {
         $archive = (string) $this->argument('archive');
-        $path = File::exists($archive) ? $archive : $backups->directory().DIRECTORY_SEPARATOR.basename($archive);
+        $path = File::exists($archive) ? $archive : $backups->localCopy(basename($archive));
 
-        if (! File::exists($path)) {
-            $this->components->error("Backup archive not found: {$path}");
+        if ($path === null) {
+            $this->components->error("Backup archive not found: {$archive}");
 
             return self::FAILURE;
         }

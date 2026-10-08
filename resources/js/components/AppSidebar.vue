@@ -47,12 +47,16 @@ const registryItems = computed<NavItem[]>(() => [
     { title: t('Dashboard'), href: dashboard(), icon: LayoutGrid },
     { title: t('Patients'), href: patients.index(), icon: Users },
     { title: t('Visits'), href: visits.index(), icon: Stethoscope },
-    {
-        title: t('Camera inbox'),
-        href: captures.index(),
-        icon: Camera,
-        badge: pendingCaptures.value,
-    },
+    ...(page.props.features.captures
+        ? [
+              {
+                  title: t('Camera inbox'),
+                  href: captures.index(),
+                  icon: Camera,
+                  badge: pendingCaptures.value,
+              },
+          ]
+        : []),
     {
         title: t('Reminders'),
         href: reminders.index(),

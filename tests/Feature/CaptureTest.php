@@ -155,4 +155,17 @@ class CaptureTest extends TestCase
         $this->assertFileExists($writing);
         $this->assertSame('export', Capture::query()->sole()->source);
     }
+
+    public function test_hosted_registry_has_no_camera_inbox()
+    {
+        config(['registry.capture.enabled' => false]);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('captures.index'))->assertNotFound();
+        $this->actingAs($user)->getJson(route('captures.status'))->assertNotFound();
+        $this->actingAs($user)->put(route('captures.settings'), ['folder' => $this->spool])->assertNotFound();
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page->where('features.captures', false));
+    }
 }

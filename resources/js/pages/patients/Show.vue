@@ -398,6 +398,7 @@ const details = computed(() =>
                 </Link>
             </Button>
             <Button
+                v-if="$page.props.features.captures"
                 :variant="receiving ? 'default' : 'outline'"
                 :title="
                     t(

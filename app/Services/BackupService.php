@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 use ZipArchive;
 
 /**
@@ -136,6 +137,29 @@ class BackupService
     public function delete(string $name): void
     {
         File::delete($this->path($name));
+    }
+
+    /**
+     * Whether archives are built by a queued job instead of during the request.
+     */
+    public function runsInBackground(): bool
+    {
+        return false;
+    }
+
+    public function download(string $name): Response
+    {
+        return response()->download($this->path($name));
+    }
+
+    /**
+     * Get the path of a backup on this computer, or null when there is no such backup.
+     */
+    public function localCopy(string $name): ?string
+    {
+        $path = $this->directory().DIRECTORY_SEPARATOR.$name;
+
+        return File::exists($path) ? $path : null;
     }
 
     /**

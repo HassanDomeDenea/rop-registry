@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
 import captureRoutes from '@/routes/captures';
 
@@ -46,8 +47,11 @@ async function refresh() {
 }
 
 export function useCaptureStatus() {
+    // A hosted registry has no camera inbox, so there is nothing to ask for.
+    const enabled = usePage().props.features.captures;
+
     onMounted(() => {
-        if (users++ === 0) {
+        if (enabled && users++ === 0) {
             void refresh();
             timer = window.setInterval(refresh, INTERVAL);
             document.addEventListener('visibilitychange', refresh);
@@ -55,7 +59,7 @@ export function useCaptureStatus() {
     });
 
     onUnmounted(() => {
-        if (--users === 0) {
+        if (enabled && --users === 0) {
             window.clearInterval(timer);
             document.removeEventListener('visibilitychange', refresh);
         }

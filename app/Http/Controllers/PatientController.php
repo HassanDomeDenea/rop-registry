@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -377,9 +378,12 @@ class PatientController extends Controller
             ->when($filters['unverified'], fn (Builder $query) => $query->where('unverified', true))
             ->when($filters['review'], fn (Builder $query) => $query->whereHas('reviewItems', fn (Builder $query) => $query->whereNull('resolved_at')))
             ->orderByRaw(self::NULLS_LAST[$filters['sort']])
-            ->when($filters['sort'] === 'file_number', fn (Builder $query) => $query->orderByRaw(
-                $filters['direction'] === 'asc' ? 'cast(file_number as integer) asc' : 'cast(file_number as integer) desc',
-            ))
+            ->when($filters['sort'] === 'file_number', fn (Builder $query) => $query->orderByRaw(sprintf(
+                'cast(file_number as %s) %s',
+                // MySQL names its whole-number cast differently.
+                DB::connection()->getDriverName() === 'sqlite' ? 'integer' : 'signed',
+                $filters['direction'],
+            )))
             ->orderBy($filters['sort'], $filters['direction'])
             ->orderBy('id', $filters['direction']);
     }

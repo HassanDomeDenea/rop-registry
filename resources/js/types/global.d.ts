@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
             locales: { code: string; label: string }[];
             translations: Record<string, string>;
             enums: Record<EnumName, EnumOption[]>;
+            features: { captures: boolean };
             reminderCounts: ReminderCounts | null;
             [key: string]: unknown;
         };

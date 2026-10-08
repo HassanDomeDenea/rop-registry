@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePoll } from '@inertiajs/vue3';
 import {
     Database,
     DatabaseBackup,
@@ -10,7 +10,7 @@ import {
     Trash2,
     Upload,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ConfirmDialog from '@/components/registry/ConfirmDialog.vue';
 import DataTable from '@/components/registry/DataTable.vue';
@@ -36,12 +36,19 @@ import { useI18n } from '@/composables/useI18n';
 import backupRoutes from '@/routes/backups';
 
 type Backup = { name: string; type: string; size: number; created_at: string };
+type Task = {
+    kind: 'backup' | 'restore';
+    status: 'running' | 'failed';
+    message: string | null;
+};
 
 const props = defineProps<{
     backups: Backup[];
     directory: string;
     customDirectory: string | null;
     keep: number;
+    hosted: boolean;
+    task: Task | null;
 }>();
 
 const { t, formatBytes, formatDateTime } = useI18n();
@@ -74,6 +81,8 @@ const types: Record<string, { label: string; tone: PillTone }> = {
 };
 
 function create(type: 'full' | 'database') {
+    notice.value = null;
+
     router.post(
         backupRoutes.store.url(),
         { type },
@@ -94,6 +103,109 @@ function destroy() {
         preserveScroll: true,
         onSuccess: () => (deleting.value = null),
     });
+}
+
+// --- Hosted registry: background work and direct upload ----------------------
+
+const running = computed(() => props.task?.status === 'running');
+const notice = ref<string | null>(null);
+
+const { start: startPolling, stop: stopPolling } = usePoll(
+    3000,
+    { only: ['backups', 'task'] },
+    { autoStart: false },
+);
+
+watch(
+    running,
+    (now, before) => {
+        if (now) {
+            startPolling();
+
+            return;
+        }
+
+        stopPolling();
+
+        if (before && props.task === null) {
+            notice.value = t('Finished. The list below is up to date.');
+        }
+    },
+    { immediate: true },
+);
+
+const uploadInput = ref<HTMLInputElement | null>(null);
+const upload = ref<{ name: string; percent: number } | null>(null);
+const uploadError = ref<string | null>(null);
+
+function send(
+    file: File,
+    target: { url: string; headers: Record<string, string> },
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+
+        request.open('PUT', target.url);
+
+        // The browser sets the host itself and refuses to have it set for it.
+        Object.entries(target.headers)
+            .filter(([name]) => name.toLowerCase() !== 'host')
+            .forEach(([name, value]) => request.setRequestHeader(name, value));
+
+        request.upload.onprogress = (event) => {
+            if (upload.value && event.lengthComputable) {
+                upload.value.percent = Math.floor(
+                    (event.loaded / event.total) * 100,
+                );
+            }
+        };
+        request.onload = () =>
+            request.status >= 200 && request.status < 300
+                ? resolve()
+                : reject(new Error(String(request.status)));
+        request.onerror = () => reject(new Error('network'));
+        request.send(file);
+    });
+}
+
+/** A large archive goes straight to storage, then shows up in the list. */
+async function uploadArchive(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    input.value = '';
+
+    if (!file) {
+        return;
+    }
+
+    notice.value = null;
+    uploadError.value = null;
+    upload.value = { name: file.name, percent: 0 };
+
+    try {
+        const response = await fetch(
+            backupRoutes.upload.url({ query: { name: file.name } }),
+            { headers: { Accept: 'application/json' } },
+        );
+
+        if (!response.ok) {
+            throw new Error(String(response.status));
+        }
+
+        await send(file, await response.json());
+
+        notice.value = t(
+            'The backup was uploaded. Choose Restore next to it to load it into the registry.',
+        );
+        router.reload({ only: ['backups'] });
+    } catch {
+        uploadError.value = t(
+            'The backup could not be uploaded. Check the connection and try again.',
+        );
+    } finally {
+        upload.value = null;
+    }
 }
 
 // --- Backup folder -----------------------------------------------------------
@@ -141,7 +253,12 @@ const canRestore = computed(
 );
 
 function submitRestore() {
-    restore.post(backupRoutes.restore.url(), { forceFormData: true });
+    notice.value = null;
+
+    restore.post(backupRoutes.restore.url(), {
+        forceFormData: true,
+        onSuccess: () => (restoreOpen.value = false),
+    });
 }
 </script>
 
@@ -156,25 +273,102 @@ function submitRestore() {
             )
         "
     >
-        <Button variant="outline" @click="openRestore(null)">
+        <Button
+            v-if="hosted"
+            variant="outline"
+            :disabled="upload !== null"
+            @click="uploadInput?.click()"
+        >
+            <Spinner v-if="upload" />
+            <Upload v-else />
+            {{ t('Upload a backup') }}
+        </Button>
+        <Button v-else variant="outline" @click="openRestore(null)">
             <Upload />
             {{ t('Restore from a file') }}
         </Button>
+        <input
+            ref="uploadInput"
+            type="file"
+            accept=".zip,application/zip"
+            class="hidden"
+            @change="uploadArchive"
+        />
         <Button
             variant="outline"
-            :disabled="creating !== null"
+            :disabled="creating !== null || running"
             @click="create('database')"
         >
             <Spinner v-if="creating === 'database'" />
             <Database v-else />
             {{ t('Back up database') }}
         </Button>
-        <Button :disabled="creating !== null" @click="create('full')">
+        <Button
+            :disabled="creating !== null || running"
+            @click="create('full')"
+        >
             <Spinner v-if="creating === 'full'" />
             <DatabaseBackup v-else />
             {{ t('Full backup') }}
         </Button>
     </PageHeader>
+
+    <div
+        v-if="running"
+        class="flex items-center gap-3 rounded-xl border border-info/30 bg-info/10 px-4 py-3 text-sm text-info"
+    >
+        <Spinner />
+        {{
+            task?.kind === 'restore'
+                ? t(
+                      'The backup is being restored. This can take several minutes; this page updates by itself.',
+                  )
+                : t(
+                      'The backup is being prepared. This can take several minutes; this page updates by itself.',
+                  )
+        }}
+    </div>
+    <div
+        v-else-if="task?.status === 'failed'"
+        class="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+    >
+        {{
+            t('The last backup or restore did not finish: :message', {
+                message: task.message ?? '',
+            })
+        }}
+    </div>
+    <div
+        v-if="upload"
+        class="space-y-2 rounded-xl border border-info/30 bg-info/10 px-4 py-3 text-sm text-info"
+    >
+        <p>
+            {{
+                t('Uploading :name… :percent%', {
+                    name: upload.name,
+                    percent: upload.percent,
+                })
+            }}
+        </p>
+        <div class="h-1.5 overflow-hidden rounded-full bg-info/20">
+            <div
+                class="h-full bg-info transition-[width]"
+                :style="{ width: `${upload.percent}%` }"
+            />
+        </div>
+    </div>
+    <div
+        v-if="uploadError"
+        class="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+    >
+        {{ uploadError }}
+    </div>
+    <div
+        v-if="notice"
+        class="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+    >
+        {{ notice }}
+    </div>
 
     <div class="grid grid-cols-3 gap-4">
         <div class="rounded-xl border bg-card p-4 shadow-xs">
@@ -216,6 +410,7 @@ function submitRestore() {
     </div>
 
     <SectionCard
+        v-if="!hosted"
         :title="t('Backup folder')"
         :description="
             t(
@@ -277,6 +472,7 @@ function submitRestore() {
                     <Button
                         variant="outline"
                         size="sm"
+                        :disabled="running"
                         @click="openRestore(row)"
                     >
                         <History />
@@ -311,9 +507,13 @@ function submitRestore() {
                 <DialogTitle>{{ t('Restore a backup') }}</DialogTitle>
                 <DialogDescription>
                     {{
-                        t(
-                            'Every patient, visit and attachment now in the registry is replaced by the contents of the backup. You will be signed out and sign in again with the account stored in the backup.',
-                        )
+                        hosted
+                            ? t(
+                                  'Every patient, visit and attachment now in the registry is replaced by the contents of the backup. The sign-in account also becomes the one stored in the backup.',
+                              )
+                            : t(
+                                  'Every patient, visit and attachment now in the registry is replaced by the contents of the backup. You will be signed out and sign in again with the account stored in the backup.',
+                              )
                     }}
                 </DialogDescription>
             </DialogHeader>

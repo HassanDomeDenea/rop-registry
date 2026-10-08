@@ -67,6 +67,7 @@ class HandleInertiaRequests extends Middleware
             'locales' => $this->locales(),
             'translations' => fn (): array => $this->translations($locale),
             'enums' => fn (): array => $this->enums(),
+            'features' => ['captures' => (bool) config('registry.capture.enabled')],
             'reminderCounts' => fn (): ?array => $request->user() ? app(ReminderService::class)->counts() : null,
         ];
     }

@@ -38,6 +38,10 @@ return [
     | every patient attachment. A backup is created automatically once a
     | day while the application is in use, and old archives are pruned.
     |
+    | A registry that runs on a database server instead of SQLite keeps its
+    | archives in the "backups" folder of the attachments disk; "path" is
+    | not used there.
+    |
     */
 
     'backup' => [
@@ -50,10 +54,14 @@ return [
     |--------------------------------------------------------------------------
     | Attachments
     |--------------------------------------------------------------------------
+    |
+    | On a single computer the files are kept on the "local" disk. A hosted
+    | registry names its object storage disk in ATTACHMENTS_DISK.
+    |
     */
 
     'attachments' => [
-        'disk' => 'local',
+        'disk' => env('ATTACHMENTS_DISK', 'local'),
         'max_kilobytes' => 51200,
         'mimes' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'pdf'],
     ],
@@ -68,9 +76,13 @@ return [
     | page. "receive_minutes" is how long incoming images go straight to a
     | patient after "Receive camera images" is pressed on the patient page.
     |
+    | The camera inbox reads folders of the computer the registry runs on,
+    | so a hosted registry switches it off with CAPTURE_ENABLED=false.
+    |
     */
 
     'capture' => [
+        'enabled' => (bool) env('CAPTURE_ENABLED', true),
         'folder' => env('CAPTURE_FOLDER'),
         'receive_minutes' => 5,
     ],
