@@ -219,6 +219,7 @@ export function useI18n() {
     return {
         t,
         locale,
+        intlLocale,
         direction,
         isRtl,
         enumOptions,

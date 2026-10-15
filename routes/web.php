@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('patients/duplicates', [PatientController::class, 'duplicates'])->name('patients.duplicates');
     Route::patch('patients/{patient}/verify', [PatientController::class, 'verify'])->name('patients.verify');
     Route::post('patients/{patient}/restore', [PatientController::class, 'restore'])->withTrashed()->name('patients.restore');
+    Route::patch('patients/{patient}/source-notes', [PatientController::class, 'sourceNotes'])->name('patients.source-notes');
     Route::patch('patients/{patient}/status', [PatientController::class, 'status'])->name('patients.status');
     Route::get('patients/{patient}/print', PatientPrintController::class)->name('patients.print');
     Route::get('patients/{patient}/merge', [PatientMergeController::class, 'create'])->name('patients.merge.create');

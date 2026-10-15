@@ -166,6 +166,28 @@ class Visit extends Model
         );
     }
 
+    /**
+     * Get the fees charged most often, offered as one-tap choices on the examination forms.
+     *
+     * @return list<int>
+     */
+    public static function commonFees(): array
+    {
+        $fees = self::query()
+            ->whereNotNull('fee')
+            ->select('fee')
+            ->groupBy('fee')
+            ->orderByRaw('count(*) desc')
+            ->orderBy('fee')
+            ->limit(6)
+            ->pluck('fee')
+            ->map(fn (mixed $fee): int => (int) $fee)
+            ->sort()
+            ->all();
+
+        return array_values($fees);
+    }
+
     public function auditLabel(): string
     {
         return $this->patient->name.' · '.($this->visit_date?->format('Y-m-d') ?? '—');

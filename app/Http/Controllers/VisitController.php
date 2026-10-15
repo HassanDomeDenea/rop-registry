@@ -22,6 +22,7 @@ class VisitController extends Controller
             'visit' => null,
             'previous' => $this->previousVisit($patient),
             'visitNumber' => $patient->visits()->count() + 1,
+            'commonFees' => Visit::commonFees(),
             ...RegistryPresenter::records($patient),
         ]);
     }
@@ -48,6 +49,7 @@ class VisitController extends Controller
             'visit' => RegistryPresenter::visit($visit, $patient),
             'previous' => null,
             'visitNumber' => $this->visitNumber($patient, $visit),
+            'commonFees' => Visit::commonFees(),
             ...RegistryPresenter::records($patient),
         ]);
     }

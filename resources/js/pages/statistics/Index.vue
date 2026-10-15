@@ -4,10 +4,10 @@ import { CalendarRange, Printer, X } from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import BarList from '@/components/charts/BarList.vue';
 import MonthlyChart from '@/components/charts/MonthlyChart.vue';
+import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import StatCard from '@/components/registry/StatCard.vue';
-import TextInput from '@/components/registry/TextInput.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import { todayIso } from '@/lib/utils';
@@ -188,11 +188,11 @@ function number(value: number | null) {
         @submit.prevent="apply"
     >
         <CalendarRange class="mb-2.5 size-4 text-muted-foreground" />
-        <FormField :label="t('First seen from')" class="w-44">
-            <TextInput v-model="range.from" type="date" />
+        <FormField :label="t('First seen from')" class="w-52">
+            <DateInput v-model="range.from" />
         </FormField>
-        <FormField :label="t('To')" class="w-44">
-            <TextInput v-model="range.to" type="date" />
+        <FormField :label="t('To')" class="w-52">
+            <DateInput v-model="range.to" />
         </FormField>
         <Button type="submit">{{ t('Apply') }}</Button>
         <div class="flex flex-wrap items-center gap-1.5">

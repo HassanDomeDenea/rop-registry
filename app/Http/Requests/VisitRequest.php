@@ -23,6 +23,17 @@ class VisitRequest extends FormRequest
      */
     public function rules(): array
     {
+        return self::fieldRules();
+    }
+
+    /**
+     * Get the rules of the visit fields, nested under the given prefix when the visit
+     * is submitted with another form, such as the first examination on the patient form.
+     *
+     * @return array<string, array<mixed>>
+     */
+    public static function fieldRules(string $prefix = ''): array
+    {
         $rules = [
             'kind' => ['required', Rule::enum(VisitKind::class)],
             'visit_date' => ['nullable', 'date', 'before_or_equal:today'],
@@ -30,7 +41,7 @@ class VisitRequest extends FormRequest
             'assessment' => ['nullable', 'string', 'max:5000'],
             'management_plan' => ['nullable', Rule::enum(ManagementPlan::class)],
             'management_notes' => ['nullable', 'string', 'max:5000'],
-            'next_visit_date' => ['nullable', 'date', 'after_or_equal:visit_date'],
+            'next_visit_date' => ['nullable', 'date', "after_or_equal:{$prefix}visit_date"],
             'fee' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'notes' => ['nullable', 'string', 'max:10000'],
         ];
@@ -49,6 +60,6 @@ class VisitRequest extends FormRequest
             ];
         }
 
-        return $rules;
+        return collect($rules)->mapWithKeys(fn (array $rule, string $field): array => [$prefix.$field => $rule])->all();
     }
 }

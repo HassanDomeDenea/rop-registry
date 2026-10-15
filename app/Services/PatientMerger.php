@@ -88,6 +88,10 @@ class PatientMerger
                 'illnesses' => $illnesses === [] ? $kept->illnesses : $illnesses,
                 'notes' => $this->combine($kept->notes, $duplicate->notes),
                 'source_notes' => $this->combine($kept->source_notes, $duplicate->source_notes),
+                // Source notes of the duplicate that were never reviewed must show again on the merged record.
+                'source_notes_reviewed_at' => $duplicate->source_notes === null || $duplicate->source_notes_reviewed_at !== null
+                    ? $kept->source_notes_reviewed_at
+                    : null,
                 // A record confirmed against a report confirms the merged one.
                 'unverified' => $kept->unverified && $duplicate->unverified,
             ])->save();

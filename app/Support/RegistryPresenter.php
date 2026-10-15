@@ -58,6 +58,7 @@ class RegistryPresenter
                 'mother_name', 'delivery_mode', 'referring_doctor', 'nicu_days', 'respiratory_support', 'support_days',
                 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone_alt', 'address', 'notes', 'source_notes',
             ]),
+            'source_notes_reviewed_at' => $patient->source_notes_reviewed_at?->toIso8601String(),
             'illness_summary' => $patient->illnessSummary(),
             'created_at' => $patient->created_at?->toIso8601String(),
             'updated_at' => $patient->updated_at?->toIso8601String(),

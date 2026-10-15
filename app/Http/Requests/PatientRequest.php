@@ -7,8 +7,10 @@ use App\Enums\Multiplicity;
 use App\Enums\PatientStatus;
 use App\Enums\RespiratorySupport;
 use App\Enums\Sex;
+use App\Models\Patient;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\Rule;
 
 class PatientRequest extends FormRequest
@@ -30,6 +32,8 @@ class PatientRequest extends FormRequest
      */
     public function rules(): array
     {
+        $patient = $this->route('patient');
+
         return [
             'file_number' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
@@ -56,6 +60,53 @@ class PatientRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:10000'],
             'status' => ['required', Rule::enum(PatientStatus::class)],
+            'visit' => ['nullable', 'array'],
+            'visit_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('visits', 'id')
+                    ->where('patient_id', $patient instanceof Patient ? $patient->id : null)
+                    ->withoutTrashed(),
+            ],
+            ...(is_array($this->input('visit')) ? VisitRequest::fieldRules('visit.') : []),
         ];
+    }
+
+    /**
+     * Name the fields of the first examination as they are named on the visit form.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return collect(array_keys(VisitRequest::fieldRules()))
+            ->mapWithKeys(fn (string $field): array => [
+                "visit.{$field}" => Lang::has("validation.attributes.{$field}")
+                    ? (string) __("validation.attributes.{$field}")
+                    : str_replace('_', ' ', $field),
+            ])
+            ->all();
+    }
+
+    /**
+     * Get the validated fields of the patient itself.
+     *
+     * @return array<string, mixed>
+     */
+    public function patientAttributes(): array
+    {
+        return $this->safe()->except(['visit', 'visit_id']);
+    }
+
+    /**
+     * Get the validated first examination, or null when it is not saved with the patient.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function visitAttributes(): ?array
+    {
+        $visit = $this->validated('visit');
+
+        return is_array($visit) ? $visit : null;
     }
 }

@@ -125,10 +125,9 @@ const aggressive = computed({
         </button>
 
         <FormField label="ROP status" :error="errors[key('rop_status')]">
-            <NativeSelect
+            <SegmentedControl
                 v-model="form[key('rop_status')]"
                 :options="englishOptions('rop_status')"
-                placeholder="Not recorded"
             />
         </FormField>
 

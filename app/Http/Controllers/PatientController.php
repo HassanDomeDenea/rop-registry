@@ -8,6 +8,7 @@ use App\Http\Requests\PatientRequest;
 use App\Models\Audit;
 use App\Models\Patient;
 use App\Models\Suggestion;
+use App\Models\Visit;
 use App\Services\RegistryWorkbook;
 use App\Support\DuplicateFinder;
 use App\Support\RegistryPresenter;
@@ -69,18 +70,36 @@ class PatientController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('patients/Form', ['patient' => null, ...$this->suggestions()]);
+        return Inertia::render('patients/Form', [
+            'patient' => null,
+            'firstVisit' => null,
+            'commonFees' => Visit::commonFees(),
+            ...$this->suggestions(),
+        ]);
     }
 
     /**
-     * Register a new patient.
+     * Register a new patient, together with the first examination when one is entered.
      */
     public function store(PatientRequest $request): RedirectResponse
     {
-        $patient = Patient::query()->create($request->validated());
+        $visit = $request->visitAttributes();
+
+        $patient = DB::transaction(function () use ($request, $visit): Patient {
+            $patient = Patient::query()->create($request->patientAttributes());
+
+            if ($visit !== null) {
+                $patient->visits()->create($visit);
+            }
+
+            return $patient;
+        });
+
         Suggestion::remember(SuggestionList::ReferringDoctor, $patient->referring_doctor);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient registered.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text(
+            $visit === null ? 'Patient registered.' : 'Patient registered with the first examination.',
+        )]);
 
         return to_route('patients.show', $patient);
     }
@@ -114,22 +133,44 @@ class PatientController extends Controller
      */
     public function edit(Patient $patient): Response
     {
+        $records = RegistryPresenter::records($patient);
+        $firstVisit = $patient->visits->first();
+
         return Inertia::render('patients/Form', [
             'patient' => RegistryPresenter::patient($patient),
-            ...RegistryPresenter::records($patient),
+            'firstVisit' => $firstVisit === null ? null : RegistryPresenter::visit($firstVisit, $patient),
+            'commonFees' => Visit::commonFees(),
+            ...$records,
             ...$this->suggestions(),
         ]);
     }
 
     /**
-     * Update the patient.
+     * Update the patient, and the first examination when it is corrected or added on the same form.
      */
     public function update(PatientRequest $request, Patient $patient): RedirectResponse
     {
-        $patient->update($request->validated());
+        $visit = $request->visitAttributes();
+
+        DB::transaction(function () use ($request, $patient, $visit): void {
+            $patient->update($request->patientAttributes());
+
+            if ($visit === null) {
+                return;
+            }
+
+            if ($request->filled('visit_id')) {
+                $patient->visits()->findOrFail($request->integer('visit_id'))->update($visit);
+            } else {
+                $patient->visits()->create($visit);
+            }
+        });
+
         Suggestion::remember(SuggestionList::ReferringDoctor, $patient->referring_doctor);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text('Patient updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->text(
+            $visit === null ? 'Patient updated.' : 'Patient and examination saved.',
+        )]);
 
         return to_route('patients.show', $patient);
     }
@@ -169,6 +210,18 @@ class PatientController extends Controller
         $patient->update(['unverified' => false]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient confirmed.')]);
+
+        return back();
+    }
+
+    /**
+     * Mark the source records of the patient as reviewed, which hides them, or show them again.
+     */
+    public function sourceNotes(Request $request, Patient $patient): RedirectResponse
+    {
+        $reviewed = $request->validate(['reviewed' => ['required', 'boolean']])['reviewed'];
+
+        $patient->update(['source_notes_reviewed_at' => $reviewed ? now() : null]);
 
         return back();
     }

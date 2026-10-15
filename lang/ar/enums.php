@@ -4,7 +4,7 @@ return [
     'sex' => ['male' => 'ذكر', 'female' => 'أنثى', 'unknown' => 'غير معروف'],
     'multiplicity' => ['single' => 'مفرد', 'twin' => 'توأم', 'triplet' => 'ثلاثي', 'higher' => 'أكثر من ثلاثة', 'unknown' => 'غير معروف'],
     'delivery_mode' => ['vaginal' => 'ولادة طبيعية', 'cesarean' => 'عملية قيصرية', 'other' => 'أخرى'],
-    'respiratory_support' => ['none' => 'لا يوجد', 'o2' => 'أوكسجين', 'cpap' => 'CPAP', 'o2_cpap' => 'أوكسجين + CPAP', 'ventilator' => 'جهاز تنفس اصطناعي'],
+    'respiratory_support' => ['none' => 'لا يوجد', 'o2' => 'O₂', 'cpap' => 'CPAP', 'o2_cpap' => 'O₂ + CPAP', 'ventilator' => 'Ventilator'],
     'patient_status' => ['active' => 'متابعة مستمرة', 'discharged' => 'انتهت المتابعة', 'referred' => 'محال', 'lost' => 'انقطع عن المتابعة', 'deceased' => 'متوفى'],
     // Zone, stage, plus, type and ROP status are written in English in clinical practice.
     'zone' => ['zone_1' => 'Zone I', 'posterior_zone_2' => 'Posterior zone II', 'zone_2' => 'Zone II', 'zone_3' => 'Zone III', 'not_applicable' => 'Not applicable', 'not_assessable' => 'Not assessable'],

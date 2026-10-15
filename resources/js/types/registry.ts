@@ -78,6 +78,7 @@ export type Patient = PatientRow & {
     address: string | null;
     notes: string | null;
     source_notes: string | null;
+    source_notes_reviewed_at: string | null;
     created_at: string | null;
     updated_at: string | null;
 };

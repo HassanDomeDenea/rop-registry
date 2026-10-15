@@ -4,6 +4,7 @@ import {
     BadgeCheck,
     CalendarClock,
     Camera,
+    Check,
     CircleHelp,
     ClipboardCheck,
     FileClock,
@@ -17,6 +18,7 @@ import {
     Stethoscope,
     Syringe,
     Trash2,
+    Undo2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import AttachmentGallery from '@/components/registry/AttachmentGallery.vue';
@@ -207,6 +209,20 @@ function confirmIdentity() {
         patientRoutes.verify.url(props.patient.id),
         {},
         { preserveScroll: true },
+    );
+}
+
+/** Reviewed source records stay folded away unless asked for on this visit of the page. */
+const showReviewedSourceNotes = ref(false);
+
+function markSourceNotesReviewed(reviewed: boolean) {
+    router.patch(
+        patientRoutes.sourceNotes.url(props.patient.id),
+        { reviewed },
+        {
+            preserveScroll: true,
+            onSuccess: () => (showReviewedSourceNotes.value = false),
+        },
     );
 }
 
@@ -540,11 +556,60 @@ function updateStatus(status: unknown) {
                 </p>
             </SectionCard>
 
+            <Button
+                v-if="
+                    patient.source_notes &&
+                    patient.source_notes_reviewed_at &&
+                    !showReviewedSourceNotes
+                "
+                variant="ghost"
+                class="w-full text-muted-foreground"
+                @click="showReviewedSourceNotes = true"
+            >
+                <FileClock />
+                {{ t('Show the reviewed source records') }}
+            </Button>
+
             <SectionCard
-                v-if="patient.source_notes"
+                v-else-if="patient.source_notes"
                 :title="t('Source records')"
+                :description="
+                    patient.source_notes_reviewed_at
+                        ? t('Reviewed :date', {
+                              date: formatDate(
+                                  patient.source_notes_reviewed_at,
+                              ),
+                          })
+                        : undefined
+                "
                 :icon="FileClock"
             >
+                <template #actions>
+                    <Button
+                        v-if="patient.source_notes_reviewed_at"
+                        variant="ghost"
+                        size="sm"
+                        :title="t('Keep the source records in view')"
+                        @click="markSourceNotesReviewed(false)"
+                    >
+                        <Undo2 />
+                        {{ t('Not reviewed') }}
+                    </Button>
+                    <Button
+                        v-else
+                        variant="outline"
+                        size="sm"
+                        :title="
+                            t(
+                                'Hide the source records of this patient. They can be shown again at any time.',
+                            )
+                        "
+                        @click="markSourceNotesReviewed(true)"
+                    >
+                        <Check />
+                        {{ t('Done reviewing') }}
+                    </Button>
+                </template>
                 <p
                     class="text-xs whitespace-pre-line text-muted-foreground"
                     dir="auto"

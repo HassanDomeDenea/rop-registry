@@ -49,6 +49,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $address
  * @property string|null $notes
  * @property string|null $source_notes
+ * @property Carbon|null $source_notes_reviewed_at
  * @property PatientStatus $status
  * @property bool $unverified
  * @property int $exams_count
@@ -85,7 +86,7 @@ class Patient extends Model
         'file_number', 'name', 'mother_name', 'dob', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
         'delivery_mode', 'referral_date', 'referring_doctor', 'nicu_days', 'respiratory_support',
         'support_days', 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone', 'phone_alt', 'address',
-        'notes', 'source_notes', 'status', 'unverified',
+        'notes', 'source_notes', 'source_notes_reviewed_at', 'status', 'unverified',
     ];
 
     /**
@@ -264,6 +265,7 @@ class Patient extends Model
             'respiratory_support' => RespiratorySupport::class,
             'status' => PatientStatus::class,
             'unverified' => 'boolean',
+            'source_notes_reviewed_at' => 'datetime',
             'illnesses' => 'array',
             'first_visit_date' => 'date:Y-m-d',
             'last_visit_date' => 'date:Y-m-d',

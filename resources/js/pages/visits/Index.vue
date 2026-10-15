@@ -12,7 +12,7 @@ import PageHeader from '@/components/registry/PageHeader.vue';
 import Pagination from '@/components/registry/Pagination.vue';
 import Pill from '@/components/registry/Pill.vue';
 import type { PillTone } from '@/components/registry/Pill.vue';
-import TextInput from '@/components/registry/TextInput.vue';
+import DateInput from '@/components/registry/DateInput.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import { daysBetween, todayIso } from '@/lib/utils';
@@ -207,16 +207,14 @@ function openPatient(row: Row) {
                 class="flex items-center gap-1.5 text-xs text-muted-foreground"
             >
                 {{ t('From') }}
-                <TextInput
-                    class="w-38"
-                    type="date"
+                <DateInput
+                    class="w-48"
                     :model-value="state.from || null"
                     @update:model-value="setFilter('from', $event as string)"
                 />
                 {{ t('To') }}
-                <TextInput
-                    class="w-38"
-                    type="date"
+                <DateInput
+                    class="w-48"
                     :model-value="state.to || null"
                     @update:model-value="setFilter('to', $event as string)"
                 />

@@ -7,12 +7,14 @@ import {
     PanelRight,
     NotebookPen,
     Phone,
+    Stethoscope,
     TriangleAlert,
     UserRound,
 } from '@lucide/vue';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import CheckList from '@/components/registry/CheckList.vue';
+import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
@@ -23,17 +25,24 @@ import SuggestInput from '@/components/registry/SuggestInput.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
 import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
+import VisitCard from '@/components/registry/VisitCard.vue';
+import VisitFields from '@/components/registry/VisitFields.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import { usePatientPanel } from '@/composables/usePatientPanel';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useVisitForm } from '@/composables/useVisitForm';
 import { daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
 import type { Attachment, Patient, Treatment, Visit } from '@/types';
 
 const props = defineProps<{
     patient: Patient | null;
+    /** The earliest visit of the patient, corrected on this form when asked. */
+    firstVisit: Visit | null;
+    commonFees: number[];
     visits?: Visit[];
     treatments?: Treatment[];
     attachments?: Attachment[];
@@ -72,7 +81,102 @@ const form = useForm<Record<string, string | number | null>>({
 // The checklist is the only field that is not a single value.
 const illnesses = ref<string[] | null>(props.patient?.illnesses ?? null);
 
-form.transform((data) => ({ ...data, illnesses: illnesses.value }));
+/**
+ * The first examination is saved with the patient only while it is switched on: by
+ * default for a new patient, and on request when an existing one is edited.
+ */
+const withVisit = ref(!props.patient);
+
+const visitForm = useVisitForm(props.firstVisit);
+
+form.transform((data) => ({
+    ...data,
+    illnesses: illnesses.value,
+    visit: withVisit.value ? visitForm.data() : null,
+    visit_id: withVisit.value ? (props.firstVisit?.id ?? null) : null,
+}));
+
+/** The errors of the examination fields, which the server returns as `visit.<field>`. */
+const visitErrors = computed(() =>
+    Object.fromEntries(
+        Object.entries(form.errors as Record<string, string | undefined>)
+            .filter(([field]) => field.startsWith('visit.'))
+            .map(([field, message]) => [field.slice('visit.'.length), message]),
+    ),
+);
+
+// Switching the examination off discards what was typed into it.
+watch(withVisit, (enabled) => {
+    if (enabled) {
+        return;
+    }
+
+    visitForm.reset();
+    form.clearErrors(
+        ...Object.keys(form.errors).filter(
+            (field) => field.startsWith('visit.') || field === 'visit_id',
+        ),
+    );
+});
+
+/** Age and postmenstrual age on the examination date, from the birth details above. */
+const examinationHint = computed(() => {
+    const dob = form.dob === null ? null : String(form.dob);
+    const date = visitForm.visit_date as string | null;
+
+    if (!dob || !date || date < dob) {
+        return undefined;
+    }
+
+    const age = daysBetween(dob, date);
+    const parts = [`${t('Age')} ${formatAge(age)}`];
+
+    if (form.ga_weeks !== null && form.ga_weeks !== '') {
+        const gestational =
+            Number(form.ga_weeks) * 7 + Number(form.ga_days ?? 0);
+
+        parts.push(`${t('PMA')} ${formatWeeks(gestational + age)}`);
+    }
+
+    return parts.join(' · ');
+});
+
+const visitDescription = computed(() => {
+    if (!props.patient) {
+        return withVisit.value
+            ? t(
+                  'Saved together with the patient. Switch off to register the patient without an examination.',
+              )
+            : t('Only the patient will be registered.');
+    }
+
+    if (!props.firstVisit) {
+        return withVisit.value
+            ? t(
+                  'A new examination will be saved with the patient. Switch off to discard it.',
+              )
+            : t('No examination recorded yet. Switch on to record one here.');
+    }
+
+    if (withVisit.value) {
+        return t(
+            'Your corrections are saved with the patient. Switch off to discard them.',
+        );
+    }
+
+    return (props.visits?.length ?? 0) > 1
+        ? t(
+              'The earliest visit by date. Switch on to correct it here; later visits are edited from the patient record.',
+          )
+        : t('Switch on to correct it here.');
+});
+
+const attachmentsOfFirstVisit = computed(
+    () =>
+        (props.attachments ?? []).filter(
+            (attachment) => attachment.visit_id === props.firstVisit?.id,
+        ).length,
+);
 
 const backHref = computed(() =>
     props.patient
@@ -147,7 +251,10 @@ const { panel, show: showPanel, toggle: togglePanel } = usePatientPanel();
 const savedIllnesses = JSON.stringify(illnesses.value);
 
 const isDirty = computed(
-    () => form.isDirty || JSON.stringify(illnesses.value) !== savedIllnesses,
+    () =>
+        form.isDirty ||
+        JSON.stringify(illnesses.value) !== savedIllnesses ||
+        (withVisit.value && visitForm.isDirty),
 );
 
 const unsaved = useUnsavedChanges(() => isDirty.value);
@@ -344,10 +451,9 @@ function submit() {
                                         : undefined
                                 "
                             >
-                                <TextInput
+                                <DateInput
                                     id="dob"
                                     v-model="form.dob"
-                                    type="date"
                                     :max="todayIso()"
                                 />
                             </FormField>
@@ -536,10 +642,9 @@ function submit() {
                                 for="referral_date"
                                 :error="form.errors.referral_date"
                             >
-                                <TextInput
+                                <DateInput
                                     id="referral_date"
                                     v-model="form.referral_date"
-                                    type="date"
                                 />
                             </FormField>
                             <FormField
@@ -614,6 +719,55 @@ function submit() {
                     </SectionCard>
                 </div>
             </div>
+
+            <section class="space-y-4 border-t pt-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                        >
+                            <Stethoscope class="size-4" />
+                        </span>
+                        <div class="min-w-0">
+                            <h2 class="text-base font-semibold">
+                                {{ t('Initial examination') }}
+                            </h2>
+                            <p class="text-xs text-muted-foreground">
+                                {{ visitDescription }}
+                            </p>
+                        </div>
+                    </div>
+                    <label
+                        class="flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2 text-sm font-medium shadow-xs"
+                    >
+                        <Switch v-model="withVisit" />
+                        {{
+                            firstVisit
+                                ? t('Edit this examination')
+                                : t('Record the first examination now')
+                        }}
+                    </label>
+                </div>
+
+                <p v-if="form.errors.visit_id" class="text-sm text-destructive">
+                    {{ form.errors.visit_id }}
+                </p>
+
+                <VisitFields
+                    v-if="withVisit"
+                    :form="visitForm"
+                    :errors="visitErrors"
+                    :common-fees="commonFees"
+                    :date-hint="examinationHint"
+                />
+                <VisitCard
+                    v-else-if="firstVisit"
+                    :visit="firstVisit"
+                    :number="1"
+                    :attachments-count="attachmentsOfFirstVisit"
+                    readonly
+                />
+            </section>
         </form>
 
         <PatientPanel
@@ -623,6 +777,7 @@ function submit() {
             :visits="visits ?? []"
             :treatments="treatments ?? []"
             :attachments="attachments ?? []"
+            :current-visit-id="withVisit ? firstVisit?.id : null"
             @close="panel.open = false"
         />
     </div>

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class PatientMergeTest extends TestCase
@@ -69,6 +70,24 @@ class PatientMergeTest extends TestCase
         $this->assertSame($kept->id, $merge->patient_id);
         $this->assertSame('Baby Aly', $merge->old_values['name']);
         $this->assertSame(0, Audit::query()->where('patient_id', $duplicate->id)->where('event', '!=', 'deleted')->count());
+    }
+
+    #[TestWith([null, null, true])]
+    #[TestWith(['Index p.59', '2026-10-01 09:00:00', true])]
+    #[TestWith(['Index p.59', null, false])]
+    public function test_merged_source_records_stay_reviewed_only_when_nothing_new_was_added(
+        ?string $duplicateSourceNotes,
+        ?string $duplicateReviewedAt,
+        bool $staysReviewed,
+    ) {
+        $kept = Patient::factory()->create(['source_notes' => 'Full PDF pages: 95', 'source_notes_reviewed_at' => '2026-10-02 09:00:00']);
+        $duplicate = Patient::factory()->create(['source_notes' => $duplicateSourceNotes, 'source_notes_reviewed_at' => $duplicateReviewedAt]);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('patients.merge.store', $kept), ['duplicate_id' => $duplicate->id])
+            ->assertRedirect(route('patients.show', $kept));
+
+        $this->assertSame($staysReviewed, $kept->refresh()->source_notes_reviewed_at !== null);
     }
 
     public function test_a_patient_cannot_be_merged_with_itself_or_a_deleted_record()

@@ -206,6 +206,21 @@ class VisitTest extends TestCase
         }
     }
 
+    public function test_visit_form_offers_the_six_most_charged_fees_in_ascending_order()
+    {
+        foreach ([10000 => 4, 15000 => 3, 20000 => 2, 30000 => 2, 50000 => 2, 0 => 2, 7000 => 1] as $fee => $times) {
+            Visit::factory()->count($times)->create(['fee' => $fee]);
+        }
+
+        Visit::factory()->count(5)->trashed()->create(['fee' => 99000]);
+        Visit::factory()->count(5)->create(['fee' => null]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('patients.visits.create', Patient::factory()->create()))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('commonFees', [0, 10000, 15000, 20000, 30000, 50000]));
+    }
+
     public function test_patient_and_visit_forms_show_the_whole_record_of_the_patient()
     {
         $patient = Patient::factory()->create();

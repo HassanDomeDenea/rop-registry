@@ -208,7 +208,10 @@ function attachmentsOf(visit: Visit) {
                 </section>
 
                 <section
-                    v-if="patient.source_notes"
+                    v-if="
+                        patient.source_notes &&
+                        !patient.source_notes_reviewed_at
+                    "
                     class="rounded-lg border px-3 py-2.5"
                 >
                     <h3

@@ -4,10 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\PatientStatus;
 use App\Enums\Sex;
+use App\Enums\Stage;
+use App\Enums\Zone;
 use App\Models\Audit;
 use App\Models\Patient;
 use App\Models\User;
+use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class PatientTest extends TestCase
@@ -91,6 +95,138 @@ class PatientTest extends TestCase
         $this->assertArrayNotHasKey('nicu_days', $audit->new_values);
     }
 
+    public function test_patient_can_be_registered_together_with_the_first_examination()
+    {
+        $response = $this->actingAs(User::factory()->create())
+            ->post(route('patients.store'), [...$this->newPatient(), 'visit' => $this->examination()]);
+
+        $patient = Patient::query()->sole();
+        $visit = Visit::query()->sole();
+
+        $response->assertRedirect(route('patients.show', $patient));
+        $response->assertInertiaFlash('toast.message', 'Patient registered with the first examination.');
+        $this->assertSame($patient->id, $visit->patient_id);
+        $this->assertSame('2026-06-20', $visit->visit_date->format('Y-m-d'));
+        $this->assertSame(Zone::ZoneTwo, $visit->right_zone);
+        $this->assertSame(Stage::StageTwo, $visit->right_stage);
+        $this->assertSame(1, $patient->refresh()->exams_count);
+    }
+
+    public function test_patient_is_registered_without_an_examination_when_it_is_switched_off()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('patients.store'), [...$this->newPatient(), 'visit' => null])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Patient::query()->count());
+        $this->assertSame(0, Visit::query()->count());
+    }
+
+    public function test_invalid_first_examination_keeps_the_patient_from_being_registered()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('patients.store'), [
+                ...$this->newPatient(),
+                'visit' => $this->examination(['next_visit_date' => '2026-06-01', 'right_stage' => 'stage_9']),
+            ])
+            ->assertSessionHasErrors([
+                'visit.next_visit_date' => 'The next visit date field must be a date after or equal to visit date.',
+                'visit.right_stage',
+            ]);
+
+        $this->assertSame(0, Patient::query()->count());
+        $this->assertSame(0, Visit::query()->count());
+    }
+
+    public function test_patient_form_offers_the_earliest_dated_visit_as_the_first_examination()
+    {
+        $patient = Patient::factory()->create();
+        Visit::factory()->for($patient)->create(['visit_date' => null]);
+        Visit::factory()->for($patient)->create(['visit_date' => '2026-07-10']);
+        $earliest = Visit::factory()->for($patient)->create(['visit_date' => '2026-06-20']);
+
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('patients.edit', $patient))
+            ->assertInertia(fn (Assert $page) => $page->where('firstVisit.id', $earliest->id));
+        $this->get(route('patients.edit', Patient::factory()->create()))
+            ->assertInertia(fn (Assert $page) => $page->where('firstVisit', null));
+    }
+
+    public function test_first_examination_can_be_corrected_from_the_patient_form()
+    {
+        $patient = Patient::factory()->create();
+        $first = Visit::factory()->for($patient)->create(['visit_date' => '2026-06-20', 'right_stage' => Stage::StageOne]);
+        $later = Visit::factory()->for($patient)->create(['visit_date' => '2026-07-10', 'right_stage' => Stage::StageOne]);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('patients.update', $patient), [
+                ...$this->existingPatient($patient),
+                'visit' => $this->examination(['right_stage' => 'stage_3']),
+                'visit_id' => $first->id,
+            ])
+            ->assertRedirect(route('patients.show', $patient));
+
+        $this->assertSame(Stage::StageThree, $first->refresh()->right_stage);
+        $this->assertSame(Stage::StageOne, $later->refresh()->right_stage);
+        $this->assertSame(2, Visit::query()->count());
+    }
+
+    public function test_first_examination_can_be_added_while_editing_a_patient_without_visits()
+    {
+        $patient = Patient::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('patients.update', $patient), [
+                ...$this->existingPatient($patient),
+                'visit' => $this->examination(),
+                'visit_id' => null,
+            ])
+            ->assertRedirect(route('patients.show', $patient));
+
+        $visit = Visit::query()->sole();
+
+        $this->assertSame($patient->id, $visit->patient_id);
+        $this->assertSame(Stage::StageTwo, $visit->right_stage);
+    }
+
+    public function test_switched_off_examination_leaves_the_visit_unchanged()
+    {
+        $patient = Patient::factory()->create(['birth_weight_g' => 1000]);
+        $visit = Visit::factory()->for($patient)->create(['right_stage' => Stage::StageOne]);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('patients.update', $patient), [
+                ...$this->existingPatient($patient),
+                'birth_weight_g' => 1400,
+                'visit' => null,
+                'visit_id' => $visit->id,
+            ])
+            ->assertRedirect(route('patients.show', $patient));
+
+        $this->assertSame(1400, $patient->refresh()->birth_weight_g);
+        $this->assertSame(Stage::StageOne, $visit->refresh()->right_stage);
+    }
+
+    public function test_visit_of_another_patient_cannot_be_corrected_through_the_patient_form()
+    {
+        $patient = Patient::factory()->create(['birth_weight_g' => 1000]);
+        $other = Visit::factory()->create(['right_stage' => Stage::StageOne]);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('patients.update', $patient), [
+                ...$this->existingPatient($patient),
+                'birth_weight_g' => 1400,
+                'visit' => $this->examination(['right_stage' => 'stage_3']),
+                'visit_id' => $other->id,
+            ])
+            ->assertSessionHasErrors('visit_id');
+
+        $this->assertSame(1000, $patient->refresh()->birth_weight_g);
+        $this->assertSame(Stage::StageOne, $other->refresh()->right_stage);
+        $this->assertSame(1, Visit::query()->count());
+    }
+
     public function test_deleted_patient_moves_to_the_recycle_bin_and_can_be_restored()
     {
         $user = User::factory()->create();
@@ -145,6 +281,36 @@ class PatientTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame(PatientStatus::Discharged, $patient->refresh()->status);
+    }
+
+    public function test_source_records_can_be_marked_as_reviewed_and_shown_again()
+    {
+        $this->freezeSecond();
+        $patient = Patient::factory()->create(['source_notes' => 'Full PDF pages: 95, 96']);
+        $this->actingAs(User::factory()->create());
+
+        $this->patch(route('patients.source-notes', $patient), ['reviewed' => true])->assertSessionHasNoErrors();
+
+        $this->assertEquals(now(), $patient->refresh()->source_notes_reviewed_at);
+        $this->assertSame('Full PDF pages: 95, 96', $patient->source_notes);
+        $this->assertSame(['source_notes_reviewed_at' => null], Audit::query()->latest('id')->first()->old_values);
+        $this->get(route('patients.show', $patient))
+            ->assertInertia(fn ($page) => $page->where('patient.source_notes_reviewed_at', now()->toIso8601String()));
+
+        $this->patch(route('patients.source-notes', $patient), ['reviewed' => false])->assertSessionHasNoErrors();
+
+        $this->assertNull($patient->refresh()->source_notes_reviewed_at);
+    }
+
+    public function test_source_records_review_requires_a_yes_or_no()
+    {
+        $patient = Patient::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->patch(route('patients.source-notes', $patient), ['reviewed' => 'later'])
+            ->assertSessionHasErrors('reviewed');
+
+        $this->assertNull($patient->refresh()->source_notes_reviewed_at);
     }
 
     public function test_top_bar_search_returns_the_first_matching_patients()
@@ -213,5 +379,43 @@ class PatientTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('patients.lookup', ['search' => 'ايمان']))
             ->assertJsonPath('total', 1);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function newPatient(): array
+    {
+        return ['name' => 'طفل تجريبي', 'sex' => 'female', 'status' => 'active'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function existingPatient(Patient $patient): array
+    {
+        return [
+            ...$patient->only(['name', 'birth_weight_g']),
+            'sex' => $patient->sex->value,
+            'status' => $patient->status->value,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function examination(array $overrides = []): array
+    {
+        return [
+            'kind' => 'examination',
+            'visit_date' => '2026-06-20',
+            'right_zone' => 'zone_2',
+            'right_stage' => 'stage_2',
+            'right_plus' => 'none',
+            'left_rop_status' => 'no_rop',
+            'next_visit_date' => '2026-07-04',
+            ...$overrides,
+        ];
     }
 }

@@ -90,7 +90,7 @@ return [
         'nicu_days' => 'مدة البقاء في الخدج',
         'respiratory_support' => 'الدعم التنفسي',
         'support_days' => 'مدة الدعم',
-        'o2_days' => 'أيام الأوكسجين',
+        'o2_days' => 'أيام O₂',
         'cpap_days' => 'أيام CPAP',
         'systemic_illness' => 'الأمراض الجهازية',
         'phone' => 'الهاتف',

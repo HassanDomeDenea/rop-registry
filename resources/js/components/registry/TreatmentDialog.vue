@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
@@ -138,9 +139,8 @@ function submit() {
                     :label="t('Date performed')"
                     :error="form.errors.performed_date"
                 >
-                    <TextInput
+                    <DateInput
                         v-model="form.performed_date"
-                        type="date"
                         :max="todayIso()"
                     />
                 </FormField>
