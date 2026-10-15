@@ -153,6 +153,28 @@ class RegistryPagesTest extends TestCase
         $this->assertSoftDeleted($attachments[1]);
     }
 
+    public function test_attachment_can_be_linked_to_another_visit_of_the_patient_only()
+    {
+        $patient = Patient::factory()->create();
+        $first = Visit::factory()->for($patient)->create();
+        $second = Visit::factory()->for($patient)->create();
+        $otherPatientsVisit = Visit::factory()->create();
+        $attachment = $patient->attachments()->create([
+            'visit_id' => $first->id, 'disk' => 'local', 'path' => 'attachments/a.jpg', 'original_name' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 10,
+        ]);
+
+        $this->actingAs(User::factory()->create());
+
+        $this->patch(route('attachments.update', $attachment), ['visit_id' => $second->id])->assertSessionHasNoErrors();
+        $this->assertSame($second->id, $attachment->refresh()->visit_id);
+
+        $this->patch(route('attachments.update', $attachment), ['visit_id' => $otherPatientsVisit->id])->assertSessionHasErrors('visit_id');
+        $this->assertSame($second->id, $attachment->refresh()->visit_id);
+
+        $this->patch(route('attachments.update', $attachment), ['visit_id' => null])->assertSessionHasNoErrors();
+        $this->assertNull($attachment->refresh()->visit_id);
+    }
+
     public function test_unsupported_files_cannot_be_attached()
     {
         Storage::fake('local');

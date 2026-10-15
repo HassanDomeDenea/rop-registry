@@ -6,7 +6,9 @@ import {
     ClipboardList,
     Copy,
     Eye as EyeIcon,
+    Images,
     Lightbulb,
+    PanelRight,
     Stethoscope,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -15,6 +17,7 @@ import EyeSummary from '@/components/registry/EyeSummary.vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
+import PatientPanel from '@/components/registry/PatientPanel.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
@@ -22,17 +25,21 @@ import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
+import { usePatientPanel } from '@/composables/usePatientPanel';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { EYE_FIELDS, suggestFollowUp } from '@/lib/rop';
 import { addDays, daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
-import type { Eye, Patient, Visit } from '@/types';
+import type { Attachment, Eye, Patient, Treatment, Visit } from '@/types';
 
 const props = defineProps<{
     patient: Patient;
     visit: Visit | null;
     previous: Visit | null;
     visitNumber: number;
+    visits: Visit[];
+    treatments: Treatment[];
+    attachments: Attachment[];
 }>();
 
 const {
@@ -175,6 +182,9 @@ function markBothNormal() {
 
 const unsaved = useUnsavedChanges(() => form.isDirty);
 
+/** The rest of the record beside the form: details, notes, earlier visits and attachments. */
+const { panel, show: showPanel, toggle: togglePanel } = usePatientPanel();
+
 function submit() {
     const options = { onError: unsaved.stopSaving };
 
@@ -197,342 +207,403 @@ function submit() {
 <template>
     <Head :title="visit ? t('Edit visit') : t('New visit')" />
 
-    <form class="space-y-6" @submit.prevent="submit">
-        <PageHeader
-            :title="visit ? t('Edit visit') : t('New visit')"
-            :back-href="backHref"
-        >
-            <template #description>
-                <span dir="auto" class="font-medium text-foreground">
-                    {{ patient.name }}
-                </span>
-                ·
-                {{
-                    visitNumber === 1
-                        ? t('Initial examination')
-                        : t('Follow-up :number', { number: visitNumber - 1 })
-                }}
-            </template>
-            <UnsavedChanges
-                v-model:confirming="unsaved.confirming.value"
-                :dirty="form.isDirty"
-                @leave="unsaved.leave"
-            />
-            <Button as-child variant="outline">
-                <Link :href="backHref">{{ t('Cancel') }}</Link>
-            </Button>
-            <Button type="submit" :disabled="form.processing">
-                <Spinner v-if="form.processing" />
-                {{ visit ? t('Save changes') : t('Save visit') }}
-            </Button>
-        </PageHeader>
-
-        <!-- Patient banner: the header of the paper form -->
-        <div
-            class="grid grid-cols-6 gap-4 rounded-xl border bg-card px-5 py-4 text-sm shadow-xs"
-        >
-            <div>
-                <p class="text-xs text-muted-foreground">{{ t('File no.') }}</p>
-                <p class="font-medium tabular-nums">
-                    {{ patient.file_number ?? '—' }}
-                </p>
-            </div>
-            <div>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('Date of birth') }}
-                </p>
-                <p class="font-medium tabular-nums">
-                    {{ formatDate(patient.dob) }}
-                </p>
-            </div>
-            <div>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('Gestational age') }}
-                </p>
-                <p class="font-medium tabular-nums">
+    <div class="flex items-start gap-6">
+        <form class="min-w-0 flex-1 space-y-6" @submit.prevent="submit">
+            <PageHeader
+                :title="visit ? t('Edit visit') : t('New visit')"
+                :back-href="backHref"
+            >
+                <template #description>
+                    <span dir="auto" class="font-medium text-foreground">
+                        {{ patient.name }}
+                    </span>
+                    ·
                     {{
-                        formatGestationalAge(patient.ga_weeks, patient.ga_days)
+                        visitNumber === 1
+                            ? t('Initial examination')
+                            : t('Follow-up :number', {
+                                  number: visitNumber - 1,
+                              })
                     }}
-                </p>
-            </div>
-            <div>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('Birth weight (g)') }}
-                </p>
-                <p class="font-medium tabular-nums">
-                    {{ formatNumber(patient.birth_weight_g) }}
-                </p>
-            </div>
-            <div>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('Age at examination') }}
-                </p>
-                <p class="font-medium tabular-nums">
-                    {{ formatAge(ages?.age) }}
-                </p>
-            </div>
-            <div>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('PMA at examination') }}
-                </p>
-                <p class="font-semibold text-primary tabular-nums">
-                    {{ formatWeeks(ages?.pma) }}
-                </p>
-            </div>
-        </div>
-
-        <SectionCard :title="t('Examination')" :icon="Stethoscope">
-            <div class="grid grid-cols-4 gap-4">
-                <FormField
-                    :label="t('Date of examination')"
-                    :error="form.errors.visit_date"
-                    :hint="t('Leave empty when the date is not documented')"
-                >
-                    <TextInput
-                        v-model="form.visit_date"
-                        type="date"
-                        :max="todayIso()"
-                    />
-                </FormField>
-                <FormField :label="t('Record type')" :error="form.errors.kind">
-                    <NativeSelect
-                        v-model="form.kind"
-                        :options="enumOptions('visit_kind')"
-                        :nullable="false"
-                    />
-                </FormField>
-                <FormField
-                    class="col-span-2"
-                    :label="t('Examiner')"
-                    :error="form.errors.examiner"
-                >
-                    <TextInput v-model="form.examiner" dir="auto" />
-                </FormField>
-            </div>
-        </SectionCard>
-
-        <!-- Clinical classification is always written in English. -->
-        <SectionCard
-            title="Fundus examination and staging of ROP"
-            :icon="EyeIcon"
-            dir="ltr"
-            lang="en"
-        >
-            <template #actions>
+                </template>
+                <UnsavedChanges
+                    v-model:confirming="unsaved.confirming.value"
+                    :dirty="form.isDirty"
+                    @leave="unsaved.leave"
+                />
                 <Button
-                    v-if="previous"
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    @click="copyPrevious"
+                    :variant="panel.open ? 'secondary' : 'outline'"
+                    :aria-pressed="panel.open"
+                    @click="togglePanel"
                 >
-                    <Copy />
-                    Copy previous findings
+                    <PanelRight />
+                    {{ t('Patient record') }}
                 </Button>
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    @click="markBothNormal"
+                    @click="showPanel('attachments')"
                 >
-                    Both eyes: no ROP, no plus
-                </Button>
-            </template>
-
-            <div class="grid grid-cols-[1fr_auto_1fr] gap-6">
-                <div>
-                    <h3 class="mb-3 text-center text-sm font-semibold">
-                        Right eye
-                        <span class="font-normal text-muted-foreground"
-                            >OD</span
-                        >
-                    </h3>
-                    <EyeFields eye="right" :form="form" :errors="form.errors" />
-                </div>
-
-                <div class="flex flex-col items-center gap-2 pt-24">
-                    <div class="w-px flex-1 bg-border" />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon-sm"
-                        title="Copy right eye to left eye"
-                        @click="copyEye('right', 'left')"
+                    <Images />
+                    {{ t('Attachments') }}
+                    <span
+                        v-if="attachments.length"
+                        class="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums"
                     >
-                        <ArrowLeftRight />
-                    </Button>
-                    <div class="w-px flex-1 bg-border" />
-                </div>
+                        {{ attachments.length }}
+                    </span>
+                </Button>
+                <Button as-child variant="outline">
+                    <Link :href="backHref">{{ t('Cancel') }}</Link>
+                </Button>
+                <Button type="submit" :disabled="form.processing">
+                    <Spinner v-if="form.processing" />
+                    {{ visit ? t('Save changes') : t('Save visit') }}
+                </Button>
+            </PageHeader>
 
+            <!-- Patient banner: the header of the paper form -->
+            <div
+                class="grid grid-cols-6 gap-4 rounded-xl border bg-card px-5 py-4 text-sm shadow-xs"
+            >
                 <div>
-                    <h3 class="mb-3 text-center text-sm font-semibold">
-                        Left eye
-                        <span class="font-normal text-muted-foreground"
-                            >OS</span
-                        >
-                    </h3>
-                    <EyeFields eye="left" :form="form" :errors="form.errors" />
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('File no.') }}
+                    </p>
+                    <p class="font-medium tabular-nums">
+                        {{ patient.file_number ?? '—' }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('Date of birth') }}
+                    </p>
+                    <p class="font-medium tabular-nums">
+                        {{ formatDate(patient.dob) }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('Gestational age') }}
+                    </p>
+                    <p class="font-medium tabular-nums">
+                        {{
+                            formatGestationalAge(
+                                patient.ga_weeks,
+                                patient.ga_days,
+                            )
+                        }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('Birth weight (g)') }}
+                    </p>
+                    <p class="font-medium tabular-nums">
+                        {{ formatNumber(patient.birth_weight_g) }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('Age at examination') }}
+                    </p>
+                    <p class="font-medium tabular-nums">
+                        {{ formatAge(ages?.age) }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('PMA at examination') }}
+                    </p>
+                    <p class="font-semibold text-primary tabular-nums">
+                        {{ formatWeeks(ages?.pma) }}
+                    </p>
                 </div>
             </div>
-        </SectionCard>
 
-        <div class="grid grid-cols-3 gap-6">
-            <SectionCard
-                class="col-span-2"
-                :title="t('Assessment and management plan')"
-                :icon="ClipboardList"
-            >
-                <div class="grid grid-cols-2 gap-4">
+            <SectionCard :title="t('Examination')" :icon="Stethoscope">
+                <div class="grid grid-cols-4 gap-4">
                     <FormField
-                        class="col-span-2"
-                        :label="t('Overall assessment')"
-                        :error="form.errors.assessment"
+                        :label="t('Date of examination')"
+                        :error="form.errors.visit_date"
+                        :hint="t('Leave empty when the date is not documented')"
                     >
-                        <TextArea v-model="form.assessment" :rows="2" />
-                    </FormField>
-                    <FormField
-                        :label="t('Management plan')"
-                        :error="form.errors.management_plan"
-                        :hint="
-                            t(
-                                'A plan is a recommendation. Record the injection or laser itself under Treatments once it is performed.',
-                            )
-                        "
-                    >
-                        <NativeSelect
-                            v-model="form.management_plan"
-                            :options="enumOptions('management_plan')"
-                            :placeholder="t('Not recorded')"
+                        <TextInput
+                            v-model="form.visit_date"
+                            type="date"
+                            :max="todayIso()"
                         />
                     </FormField>
                     <FormField
-                        :label="t('Plan details')"
-                        :error="form.errors.management_notes"
+                        :label="t('Record type')"
+                        :error="form.errors.kind"
                     >
-                        <TextArea v-model="form.management_notes" :rows="2" />
+                        <NativeSelect
+                            v-model="form.kind"
+                            :options="enumOptions('visit_kind')"
+                            :nullable="false"
+                        />
                     </FormField>
                     <FormField
                         class="col-span-2"
-                        :label="t('Notes')"
-                        :error="form.errors.notes"
+                        :label="t('Examiner')"
+                        :error="form.errors.examiner"
                     >
-                        <TextArea v-model="form.notes" :rows="2" />
+                        <TextInput v-model="form.examiner" dir="auto" />
                     </FormField>
                 </div>
             </SectionCard>
 
-            <div class="space-y-6">
-                <SectionCard
-                    :title="t('Next appointment')"
-                    :icon="CalendarDays"
-                >
-                    <div class="grid gap-4">
-                        <FormField
-                            :label="t('Next visit date')"
-                            :error="form.errors.next_visit_date"
-                            :hint="nextVisitHint"
+            <!-- Clinical classification is always written in English. -->
+            <SectionCard
+                title="Fundus examination and staging of ROP"
+                :icon="EyeIcon"
+                dir="ltr"
+                lang="en"
+            >
+                <template #actions>
+                    <Button
+                        v-if="previous"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        @click="copyPrevious"
+                    >
+                        <Copy />
+                        Copy previous findings
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        @click="markBothNormal"
+                    >
+                        Both eyes: no ROP, no plus
+                    </Button>
+                </template>
+
+                <div class="grid grid-cols-[1fr_auto_1fr] gap-6">
+                    <div>
+                        <h3 class="mb-3 text-center text-sm font-semibold">
+                            Right eye
+                            <span class="font-normal text-muted-foreground"
+                                >OD</span
+                            >
+                        </h3>
+                        <EyeFields
+                            eye="right"
+                            :form="form"
+                            :errors="form.errors"
+                        />
+                    </div>
+
+                    <div class="flex flex-col items-center gap-2 pt-24">
+                        <div class="w-px flex-1 bg-border" />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            title="Copy right eye to left eye"
+                            @click="copyEye('right', 'left')"
                         >
-                            <TextInput
-                                v-model="form.next_visit_date"
-                                type="date"
-                            />
+                            <ArrowLeftRight />
+                        </Button>
+                        <div class="w-px flex-1 bg-border" />
+                    </div>
+
+                    <div>
+                        <h3 class="mb-3 text-center text-sm font-semibold">
+                            Left eye
+                            <span class="font-normal text-muted-foreground"
+                                >OS</span
+                            >
+                        </h3>
+                        <EyeFields
+                            eye="left"
+                            :form="form"
+                            :errors="form.errors"
+                        />
+                    </div>
+                </div>
+            </SectionCard>
+
+            <div class="grid grid-cols-3 gap-6">
+                <SectionCard
+                    class="col-span-2"
+                    :title="t('Assessment and management plan')"
+                    :icon="ClipboardList"
+                >
+                    <div class="grid grid-cols-2 gap-4">
+                        <FormField
+                            class="col-span-2"
+                            :label="t('Overall assessment')"
+                            :error="form.errors.assessment"
+                        >
+                            <TextArea v-model="form.assessment" :rows="2" />
                         </FormField>
-                        <div
-                            v-if="followUp && followUpLabel"
-                            class="rounded-md border border-dashed px-3 py-2 text-xs"
-                            :class="
-                                followUp.treat
-                                    ? 'border-destructive/40 bg-destructive/5 text-destructive'
-                                    : 'border-info/40 bg-info/5 text-info'
+                        <FormField
+                            :label="t('Management plan')"
+                            :error="form.errors.management_plan"
+                            :hint="
+                                t(
+                                    'A plan is a recommendation. Record the injection or laser itself under Treatments once it is performed.',
+                                )
                             "
                         >
-                            <p class="flex items-start gap-2 font-medium">
-                                <Lightbulb class="mt-0.5 size-3.5 shrink-0" />
-                                {{ followUpLabel }}
-                            </p>
-                            <div
-                                v-if="!followUp.treat"
-                                class="mt-1.5 flex flex-wrap gap-1.5 ps-5"
-                            >
-                                <button
-                                    v-for="weeks in [
-                                        ...new Set([
-                                            followUp.minWeeks,
-                                            followUp.maxWeeks,
-                                        ]),
-                                    ]"
-                                    :key="weeks"
-                                    type="button"
-                                    class="rounded-md bg-info/15 px-2 py-0.5 font-medium hover:bg-info/25"
-                                    @click="planNextVisit(weeks)"
-                                >
-                                    {{ t('Use :count w', { count: weeks }) }}
-                                </button>
-                            </div>
-                            <p class="mt-1.5 ps-5 text-muted-foreground">
-                                {{
-                                    t(
-                                        'From the AAP/AAO 2018 screening schedule, based on the zone, stage and plus entered. A reminder only — the examiner decides.',
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button
-                                v-for="weeks in intervals"
-                                :key="weeks"
-                                type="button"
-                                class="rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                                @click="planNextVisit(weeks)"
-                            >
-                                {{ t('+:count w', { count: weeks }) }}
-                            </button>
-                            <button
-                                v-if="form.next_visit_date"
-                                type="button"
-                                class="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
-                                @click="form.next_visit_date = null"
-                            >
-                                {{ t('Clear') }}
-                            </button>
-                        </div>
-                        <FormField
-                            :label="t('Fee (IQD)')"
-                            :error="form.errors.fee"
-                        >
-                            <TextInput
-                                v-model="form.fee"
-                                type="number"
-                                min="0"
-                                step="1000"
+                            <NativeSelect
+                                v-model="form.management_plan"
+                                :options="enumOptions('management_plan')"
+                                :placeholder="t('Not recorded')"
                             />
+                        </FormField>
+                        <FormField
+                            :label="t('Plan details')"
+                            :error="form.errors.management_notes"
+                        >
+                            <TextArea
+                                v-model="form.management_notes"
+                                :rows="2"
+                            />
+                        </FormField>
+                        <FormField
+                            class="col-span-2"
+                            :label="t('Notes')"
+                            :error="form.errors.notes"
+                        >
+                            <TextArea v-model="form.notes" :rows="2" />
                         </FormField>
                     </div>
                 </SectionCard>
 
-                <SectionCard
-                    v-if="previous"
-                    :title="t('Previous visit')"
-                    :description="formatDate(previous.visit_date)"
-                >
-                    <div class="space-y-3">
-                        <EyeSummary :visit="previous" eye="right" english />
-                        <EyeSummary :visit="previous" eye="left" english />
-                        <p
-                            v-if="previous.management_plan"
-                            class="text-xs text-muted-foreground"
-                        >
-                            {{ t('Plan') }}:
-                            {{
-                                enumLabel(
-                                    'management_plan',
-                                    previous.management_plan,
-                                )
-                            }}
-                        </p>
-                    </div>
-                </SectionCard>
+                <div class="space-y-6">
+                    <SectionCard
+                        :title="t('Next appointment')"
+                        :icon="CalendarDays"
+                    >
+                        <div class="grid gap-4">
+                            <FormField
+                                :label="t('Next visit date')"
+                                :error="form.errors.next_visit_date"
+                                :hint="nextVisitHint"
+                            >
+                                <TextInput
+                                    v-model="form.next_visit_date"
+                                    type="date"
+                                />
+                            </FormField>
+                            <div
+                                v-if="followUp && followUpLabel"
+                                class="rounded-md border border-dashed px-3 py-2 text-xs"
+                                :class="
+                                    followUp.treat
+                                        ? 'border-destructive/40 bg-destructive/5 text-destructive'
+                                        : 'border-info/40 bg-info/5 text-info'
+                                "
+                            >
+                                <p class="flex items-start gap-2 font-medium">
+                                    <Lightbulb
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                    />
+                                    {{ followUpLabel }}
+                                </p>
+                                <div
+                                    v-if="!followUp.treat"
+                                    class="mt-1.5 flex flex-wrap gap-1.5 ps-5"
+                                >
+                                    <button
+                                        v-for="weeks in [
+                                            ...new Set([
+                                                followUp.minWeeks,
+                                                followUp.maxWeeks,
+                                            ]),
+                                        ]"
+                                        :key="weeks"
+                                        type="button"
+                                        class="rounded-md bg-info/15 px-2 py-0.5 font-medium hover:bg-info/25"
+                                        @click="planNextVisit(weeks)"
+                                    >
+                                        {{
+                                            t('Use :count w', { count: weeks })
+                                        }}
+                                    </button>
+                                </div>
+                                <p class="mt-1.5 ps-5 text-muted-foreground">
+                                    {{
+                                        t(
+                                            'From the AAP/AAO 2018 screening schedule, based on the zone, stage and plus entered. A reminder only — the examiner decides.',
+                                        )
+                                    }}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    v-for="weeks in intervals"
+                                    :key="weeks"
+                                    type="button"
+                                    class="rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                                    @click="planNextVisit(weeks)"
+                                >
+                                    {{ t('+:count w', { count: weeks }) }}
+                                </button>
+                                <button
+                                    v-if="form.next_visit_date"
+                                    type="button"
+                                    class="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                                    @click="form.next_visit_date = null"
+                                >
+                                    {{ t('Clear') }}
+                                </button>
+                            </div>
+                            <FormField
+                                :label="t('Fee (IQD)')"
+                                :error="form.errors.fee"
+                            >
+                                <TextInput
+                                    v-model="form.fee"
+                                    type="number"
+                                    min="0"
+                                    step="1000"
+                                />
+                            </FormField>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard
+                        v-if="previous"
+                        :title="t('Previous visit')"
+                        :description="formatDate(previous.visit_date)"
+                    >
+                        <div class="space-y-3">
+                            <EyeSummary :visit="previous" eye="right" english />
+                            <EyeSummary :visit="previous" eye="left" english />
+                            <p
+                                v-if="previous.management_plan"
+                                class="text-xs text-muted-foreground"
+                            >
+                                {{ t('Plan') }}:
+                                {{
+                                    enumLabel(
+                                        'management_plan',
+                                        previous.management_plan,
+                                    )
+                                }}
+                            </p>
+                        </div>
+                    </SectionCard>
+                </div>
             </div>
-        </div>
-    </form>
+        </form>
+
+        <PatientPanel
+            v-if="panel.open"
+            v-model:tab="panel.tab"
+            :patient="patient"
+            :visits="visits"
+            :treatments="treatments"
+            :attachments="attachments"
+            :current-visit-id="visit?.id"
+            @close="panel.open = false"
+        />
+    </div>
 </template>

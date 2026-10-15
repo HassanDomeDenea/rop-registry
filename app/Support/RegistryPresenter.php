@@ -65,6 +65,23 @@ class RegistryPresenter
     }
 
     /**
+     * Get the visits, treatments and attachments of the patient, shown beside the
+     * patient and visit forms so that the whole record stays in view while editing.
+     *
+     * @return array{visits: list<array<string, mixed>>, treatments: list<array<string, mixed>>, attachments: list<array<string, mixed>>}
+     */
+    public static function records(Patient $patient): array
+    {
+        $patient->loadMissing(['visits', 'treatments', 'attachments']);
+
+        return [
+            'visits' => $patient->visits->map(fn (Visit $visit): array => self::visit($visit, $patient))->values()->all(),
+            'treatments' => $patient->treatments->map(fn (Treatment $treatment): array => self::treatment($treatment, $patient))->values()->all(),
+            'attachments' => $patient->attachments->map(fn (Attachment $attachment): array => self::attachment($attachment))->values()->all(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function visit(Visit $visit, Patient $patient): array

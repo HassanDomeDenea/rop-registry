@@ -160,7 +160,7 @@ export type ReviewItem = {
 
 export type Audit = {
     id: number;
-    event: 'created' | 'updated' | 'deleted' | 'restored';
+    event: 'created' | 'updated' | 'deleted' | 'restored' | 'merged';
     auditable_type: string;
     auditable_id: number;
     patient_id: number | null;

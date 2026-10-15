@@ -114,7 +114,11 @@ class PatientController extends Controller
      */
     public function edit(Patient $patient): Response
     {
-        return Inertia::render('patients/Form', ['patient' => RegistryPresenter::patient($patient), ...$this->suggestions()]);
+        return Inertia::render('patients/Form', [
+            'patient' => RegistryPresenter::patient($patient),
+            ...RegistryPresenter::records($patient),
+            ...$this->suggestions(),
+        ]);
     }
 
     /**

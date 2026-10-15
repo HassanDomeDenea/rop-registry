@@ -14,6 +14,7 @@ use App\Models\Treatment;
 use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class VisitTest extends TestCase
@@ -203,5 +204,29 @@ class VisitTest extends TestCase
             $this->actingAs($user)->get(route('visits.index', $filter))
                 ->assertInertia(fn ($page) => $page->has('visits.data', 1)->where('visits.data.0.id', $old->id));
         }
+    }
+
+    public function test_patient_and_visit_forms_show_the_whole_record_of_the_patient()
+    {
+        $patient = Patient::factory()->create();
+        $visit = Visit::factory()->for($patient)->create();
+        Treatment::factory()->for($patient)->create();
+        $patient->attachments()->create([
+            'visit_id' => $visit->id, 'disk' => 'local', 'path' => 'attachments/scan.jpg', 'original_name' => 'scan.jpg', 'mime_type' => 'image/jpeg', 'size' => 10,
+        ]);
+        Visit::factory()->create();
+
+        $this->actingAs(User::factory()->create());
+
+        $record = fn (Assert $page) => $page
+            ->has('visits', 1)
+            ->where('visits.0.id', $visit->id)
+            ->has('treatments', 1)
+            ->has('attachments', 1)
+            ->where('attachments.0.visit_id', $visit->id);
+
+        $this->get(route('patients.edit', $patient))->assertInertia($record);
+        $this->get(route('patients.visits.create', $patient))->assertInertia($record);
+        $this->get(route('patients.visits.edit', [$patient, $visit]))->assertInertia($record);
     }
 }

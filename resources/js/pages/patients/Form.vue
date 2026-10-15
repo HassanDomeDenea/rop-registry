@@ -3,6 +3,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     Baby,
     HeartPulse,
+    Images,
+    PanelRight,
     NotebookPen,
     Phone,
     TriangleAlert,
@@ -14,6 +16,7 @@ import CheckList from '@/components/registry/CheckList.vue';
 import FormField from '@/components/registry/FormField.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
+import PatientPanel from '@/components/registry/PatientPanel.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
 import SuggestInput from '@/components/registry/SuggestInput.vue';
@@ -23,13 +26,17 @@ import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
+import { usePatientPanel } from '@/composables/usePatientPanel';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
-import type { Patient } from '@/types';
+import type { Attachment, Patient, Treatment, Visit } from '@/types';
 
 const props = defineProps<{
     patient: Patient | null;
+    visits?: Visit[];
+    treatments?: Treatment[];
+    attachments?: Attachment[];
     illnessOptions: string[];
     doctorOptions: string[];
 }>();
@@ -134,6 +141,9 @@ const findDuplicates = useDebounceFn(async () => {
 
 watch(() => [form.name, form.dob], findDuplicates);
 
+/** The rest of the record beside the form, to check the details against the reports. */
+const { panel, show: showPanel, toggle: togglePanel } = usePatientPanel();
+
 const savedIllnesses = JSON.stringify(illnesses.value);
 
 const isDirty = computed(
@@ -158,415 +168,462 @@ function submit() {
 <template>
     <Head :title="patient ? t('Edit patient') : t('New patient')" />
 
-    <form class="space-y-6" @submit.prevent="submit">
-        <PageHeader
-            :title="patient ? t('Edit patient') : t('New patient')"
-            :description="
-                patient
-                    ? patient.name
-                    : t('Fields left empty are stored as not recorded')
-            "
-            :back-href="backHref"
-        >
-            <UnsavedChanges
-                v-model:confirming="unsaved.confirming.value"
-                :dirty="isDirty"
-                @leave="unsaved.leave"
-            />
-            <Button as-child variant="outline">
-                <Link :href="backHref">{{ t('Cancel') }}</Link>
-            </Button>
-            <Button type="submit" :disabled="form.processing">
-                <Spinner v-if="form.processing" />
-                {{ patient ? t('Save changes') : t('Register patient') }}
-            </Button>
-        </PageHeader>
-
-        <div
-            v-if="duplicates.length"
-            class="rounded-xl border border-warning/40 bg-warning/10 px-5 py-4"
-        >
-            <p
-                class="flex items-center gap-2 text-sm font-semibold text-warning"
+    <div class="flex items-start gap-6">
+        <form class="min-w-0 flex-1 space-y-6" @submit.prevent="submit">
+            <PageHeader
+                :title="patient ? t('Edit patient') : t('New patient')"
+                :description="
+                    patient
+                        ? patient.name
+                        : t('Fields left empty are stored as not recorded')
+                "
+                :back-href="backHref"
             >
-                <TriangleAlert class="size-4" />
-                {{ t('This baby may already be registered') }}
-            </p>
-            <p class="mt-1 text-xs text-muted-foreground">
-                {{
-                    t(
-                        'Open the record to check before saving. Twins share a date of birth and are registered separately.',
-                    )
-                }}
-            </p>
-            <ul class="mt-3 grid grid-cols-2 gap-2">
-                <li v-for="match in duplicates" :key="match.id">
-                    <a
-                        :href="patientRoutes.show.url(match.id)"
-                        target="_blank"
-                        class="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm hover:bg-muted/60"
+                <UnsavedChanges
+                    v-model:confirming="unsaved.confirming.value"
+                    :dirty="isDirty"
+                    @leave="unsaved.leave"
+                />
+                <Button
+                    v-if="patient"
+                    type="button"
+                    :variant="panel.open ? 'secondary' : 'outline'"
+                    :aria-pressed="panel.open"
+                    @click="togglePanel"
+                >
+                    <PanelRight />
+                    {{ t('Patient record') }}
+                </Button>
+                <Button
+                    v-if="patient"
+                    type="button"
+                    variant="outline"
+                    @click="showPanel('attachments')"
+                >
+                    <Images />
+                    {{ t('Attachments') }}
+                    <span
+                        v-if="attachments?.length"
+                        class="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums"
                     >
-                        <span class="min-w-0">
-                            <span class="block truncate font-medium">
-                                <bdi>{{ match.name }}</bdi>
-                            </span>
-                            <span class="block text-xs text-muted-foreground">
-                                <template v-if="match.file_number">
-                                    #{{ match.file_number }} ·
-                                </template>
-                                {{ formatDate(match.dob) }}
-                                <template v-if="match.ga_weeks !== null">
-                                    · {{ t('GA') }}
-                                    {{
-                                        t(':weeks w', { weeks: match.ga_weeks })
-                                    }}
-                                </template>
-                                <template v-if="match.unverified">
-                                    · {{ t('Unverified') }}
-                                </template>
-                            </span>
-                        </span>
-                        <span class="shrink-0 text-xs text-warning">
-                            {{ t(duplicateReasons[match.reason]) }}
-                        </span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+                        {{ attachments.length }}
+                    </span>
+                </Button>
+                <Button as-child variant="outline">
+                    <Link :href="backHref">{{ t('Cancel') }}</Link>
+                </Button>
+                <Button type="submit" :disabled="form.processing">
+                    <Spinner v-if="form.processing" />
+                    {{ patient ? t('Save changes') : t('Register patient') }}
+                </Button>
+            </PageHeader>
 
-        <div class="grid grid-cols-3 gap-6">
-            <div class="col-span-2 space-y-6">
-                <SectionCard :title="t('Identity')" :icon="UserRound">
-                    <div class="grid grid-cols-6 gap-4">
-                        <FormField
-                            class="col-span-4"
-                            :label="t('Baby full name')"
-                            for="name"
-                            :error="form.errors.name"
-                            required
+            <div
+                v-if="duplicates.length"
+                class="rounded-xl border border-warning/40 bg-warning/10 px-5 py-4"
+            >
+                <p
+                    class="flex items-center gap-2 text-sm font-semibold text-warning"
+                >
+                    <TriangleAlert class="size-4" />
+                    {{ t('This baby may already be registered') }}
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    {{
+                        t(
+                            'Open the record to check before saving. Twins share a date of birth and are registered separately.',
+                        )
+                    }}
+                </p>
+                <ul class="mt-3 grid grid-cols-2 gap-2">
+                    <li v-for="match in duplicates" :key="match.id">
+                        <a
+                            :href="patientRoutes.show.url(match.id)"
+                            target="_blank"
+                            class="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm hover:bg-muted/60"
                         >
-                            <TextInput
-                                id="name"
-                                v-model="form.name"
-                                v-focus="!patient"
-                                dir="auto"
+                            <span class="min-w-0">
+                                <span class="block truncate font-medium">
+                                    <bdi>{{ match.name }}</bdi>
+                                </span>
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                >
+                                    <template v-if="match.file_number">
+                                        #{{ match.file_number }} ·
+                                    </template>
+                                    {{ formatDate(match.dob) }}
+                                    <template v-if="match.ga_weeks !== null">
+                                        · {{ t('GA') }}
+                                        {{
+                                            t(':weeks w', {
+                                                weeks: match.ga_weeks,
+                                            })
+                                        }}
+                                    </template>
+                                    <template v-if="match.unverified">
+                                        · {{ t('Unverified') }}
+                                    </template>
+                                </span>
+                            </span>
+                            <span class="shrink-0 text-xs text-warning">
+                                {{ t(duplicateReasons[match.reason]) }}
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="grid grid-cols-3 gap-6">
+                <div class="col-span-2 space-y-6">
+                    <SectionCard :title="t('Identity')" :icon="UserRound">
+                        <div class="grid grid-cols-6 gap-4">
+                            <FormField
+                                class="col-span-4"
+                                :label="t('Baby full name')"
+                                for="name"
+                                :error="form.errors.name"
                                 required
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('Clinic file no.')"
-                            for="file_number"
-                            :error="form.errors.file_number"
-                        >
-                            <TextInput
-                                id="file_number"
-                                v-model="form.file_number"
-                                dir="ltr"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-6"
-                            :label="t('Mother name')"
-                            for="mother_name"
-                            :error="form.errors.mother_name"
-                        >
-                            <TextInput
-                                id="mother_name"
-                                v-model="form.mother_name"
-                                dir="auto"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-3"
-                            :label="t('Sex')"
-                            :error="form.errors.sex"
-                        >
-                            <SegmentedControl
-                                v-model="form.sex"
-                                :options="enumOptions('sex')"
-                                :nullable="false"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-3"
-                            :label="t('Date of birth')"
-                            for="dob"
-                            :error="form.errors.dob"
-                            :hint="
-                                ageToday
-                                    ? t('Age today: :age', {
-                                          age: formatAge(ageToday.age),
-                                      }) +
-                                      (ageToday.pma !== null
-                                          ? ` · ${t('PMA')} ${formatWeeks(ageToday.pma)}`
-                                          : '')
-                                    : undefined
-                            "
-                        >
-                            <TextInput
-                                id="dob"
-                                v-model="form.dob"
-                                type="date"
-                                :max="todayIso()"
-                            />
-                        </FormField>
-                    </div>
-                </SectionCard>
-
-                <SectionCard :title="t('Birth history')" :icon="Baby">
-                    <div class="grid grid-cols-6 gap-4">
-                        <FormField
-                            class="col-span-2"
-                            :label="t('Gestational age (weeks)')"
-                            for="ga_weeks"
-                            :error="form.errors.ga_weeks"
-                        >
-                            <TextInput
-                                id="ga_weeks"
-                                v-model="form.ga_weeks"
-                                type="number"
-                                min="20"
-                                max="44"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('+ days')"
-                            for="ga_days"
-                            :error="form.errors.ga_days"
-                        >
-                            <TextInput
-                                id="ga_days"
-                                v-model="form.ga_days"
-                                type="number"
-                                min="0"
-                                max="6"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('Birth weight (g)')"
-                            for="birth_weight_g"
-                            :error="form.errors.birth_weight_g"
-                        >
-                            <TextInput
-                                id="birth_weight_g"
-                                v-model="form.birth_weight_g"
-                                type="number"
-                                min="200"
-                                max="7000"
-                                step="10"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-3"
-                            :label="t('Multiple births')"
-                            :error="form.errors.multiplicity"
-                        >
-                            <SegmentedControl
-                                v-model="form.multiplicity"
-                                :options="
-                                    enumOptions('multiplicity').filter(
-                                        (option) => option.value !== 'unknown',
-                                    )
+                            >
+                                <TextInput
+                                    id="name"
+                                    v-model="form.name"
+                                    v-focus="!patient"
+                                    dir="auto"
+                                    required
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('Clinic file no.')"
+                                for="file_number"
+                                :error="form.errors.file_number"
+                            >
+                                <TextInput
+                                    id="file_number"
+                                    v-model="form.file_number"
+                                    dir="ltr"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-6"
+                                :label="t('Mother name')"
+                                for="mother_name"
+                                :error="form.errors.mother_name"
+                            >
+                                <TextInput
+                                    id="mother_name"
+                                    v-model="form.mother_name"
+                                    dir="auto"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-3"
+                                :label="t('Sex')"
+                                :error="form.errors.sex"
+                            >
+                                <SegmentedControl
+                                    v-model="form.sex"
+                                    :options="enumOptions('sex')"
+                                    :nullable="false"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-3"
+                                :label="t('Date of birth')"
+                                for="dob"
+                                :error="form.errors.dob"
+                                :hint="
+                                    ageToday
+                                        ? t('Age today: :age', {
+                                              age: formatAge(ageToday.age),
+                                          }) +
+                                          (ageToday.pma !== null
+                                              ? ` · ${t('PMA')} ${formatWeeks(ageToday.pma)}`
+                                              : '')
+                                        : undefined
                                 "
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-3"
-                            :label="t('Delivery mode')"
-                            :error="form.errors.delivery_mode"
-                        >
-                            <NativeSelect
-                                v-model="form.delivery_mode"
-                                :options="enumOptions('delivery_mode')"
-                                :placeholder="t('Not recorded')"
-                            />
-                        </FormField>
-                    </div>
-                </SectionCard>
+                            >
+                                <TextInput
+                                    id="dob"
+                                    v-model="form.dob"
+                                    type="date"
+                                    :max="todayIso()"
+                                />
+                            </FormField>
+                        </div>
+                    </SectionCard>
 
-                <SectionCard :title="t('Neonatal course')" :icon="HeartPulse">
-                    <div class="grid grid-cols-6 gap-4">
-                        <FormField
-                            class="col-span-2"
-                            :label="t('NICU stay (days)')"
-                            for="nicu_days"
-                            :error="form.errors.nicu_days"
-                        >
-                            <TextInput
-                                id="nicu_days"
-                                v-model="form.nicu_days"
-                                type="number"
-                                min="0"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('Respiratory support')"
-                            :error="form.errors.respiratory_support"
-                        >
-                            <NativeSelect
-                                v-model="form.respiratory_support"
-                                :options="enumOptions('respiratory_support')"
-                                :placeholder="t('Not recorded')"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('Support duration (days)')"
-                            for="support_days"
-                            :error="form.errors.support_days"
-                        >
-                            <TextInput
-                                id="support_days"
-                                v-model="form.support_days"
-                                type="number"
-                                min="0"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('O₂ days')"
-                            for="o2_days"
-                            :error="form.errors.o2_days"
-                        >
-                            <TextInput
-                                id="o2_days"
-                                v-model="form.o2_days"
-                                type="number"
-                                min="0"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-2"
-                            :label="t('CPAP days')"
-                            for="cpap_days"
-                            :error="form.errors.cpap_days"
-                        >
-                            <TextInput
-                                id="cpap_days"
-                                v-model="form.cpap_days"
-                                type="number"
-                                min="0"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-6"
-                            :label="t('Associated systemic illness')"
-                            :error="
-                                (form.errors as Record<string, string>)
-                                    .illnesses
-                            "
-                            :hint="t('Tick all that apply')"
-                        >
-                            <CheckList
-                                v-model="illnesses"
-                                :options="illnessOptions"
-                            />
-                        </FormField>
-                        <FormField
-                            class="col-span-6"
-                            :label="t('Other illnesses or details')"
-                            for="systemic_illness"
-                            :error="form.errors.systemic_illness"
-                        >
-                            <TextInput
-                                id="systemic_illness"
-                                v-model="form.systemic_illness"
-                                dir="auto"
-                            />
-                        </FormField>
-                    </div>
-                </SectionCard>
+                    <SectionCard :title="t('Birth history')" :icon="Baby">
+                        <div class="grid grid-cols-6 gap-4">
+                            <FormField
+                                class="col-span-2"
+                                :label="t('Gestational age (weeks)')"
+                                for="ga_weeks"
+                                :error="form.errors.ga_weeks"
+                            >
+                                <TextInput
+                                    id="ga_weeks"
+                                    v-model="form.ga_weeks"
+                                    type="number"
+                                    min="20"
+                                    max="44"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('+ days')"
+                                for="ga_days"
+                                :error="form.errors.ga_days"
+                            >
+                                <TextInput
+                                    id="ga_days"
+                                    v-model="form.ga_days"
+                                    type="number"
+                                    min="0"
+                                    max="6"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('Birth weight (g)')"
+                                for="birth_weight_g"
+                                :error="form.errors.birth_weight_g"
+                            >
+                                <TextInput
+                                    id="birth_weight_g"
+                                    v-model="form.birth_weight_g"
+                                    type="number"
+                                    min="200"
+                                    max="7000"
+                                    step="10"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-3"
+                                :label="t('Multiple births')"
+                                :error="form.errors.multiplicity"
+                            >
+                                <SegmentedControl
+                                    v-model="form.multiplicity"
+                                    :options="
+                                        enumOptions('multiplicity').filter(
+                                            (option) =>
+                                                option.value !== 'unknown',
+                                        )
+                                    "
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-3"
+                                :label="t('Delivery mode')"
+                                :error="form.errors.delivery_mode"
+                            >
+                                <NativeSelect
+                                    v-model="form.delivery_mode"
+                                    :options="enumOptions('delivery_mode')"
+                                    :placeholder="t('Not recorded')"
+                                />
+                            </FormField>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard
+                        :title="t('Neonatal course')"
+                        :icon="HeartPulse"
+                    >
+                        <div class="grid grid-cols-6 gap-4">
+                            <FormField
+                                class="col-span-2"
+                                :label="t('NICU stay (days)')"
+                                for="nicu_days"
+                                :error="form.errors.nicu_days"
+                            >
+                                <TextInput
+                                    id="nicu_days"
+                                    v-model="form.nicu_days"
+                                    type="number"
+                                    min="0"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('Respiratory support')"
+                                :error="form.errors.respiratory_support"
+                            >
+                                <NativeSelect
+                                    v-model="form.respiratory_support"
+                                    :options="
+                                        enumOptions('respiratory_support')
+                                    "
+                                    :placeholder="t('Not recorded')"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('Support duration (days)')"
+                                for="support_days"
+                                :error="form.errors.support_days"
+                            >
+                                <TextInput
+                                    id="support_days"
+                                    v-model="form.support_days"
+                                    type="number"
+                                    min="0"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('O₂ days')"
+                                for="o2_days"
+                                :error="form.errors.o2_days"
+                            >
+                                <TextInput
+                                    id="o2_days"
+                                    v-model="form.o2_days"
+                                    type="number"
+                                    min="0"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-2"
+                                :label="t('CPAP days')"
+                                for="cpap_days"
+                                :error="form.errors.cpap_days"
+                            >
+                                <TextInput
+                                    id="cpap_days"
+                                    v-model="form.cpap_days"
+                                    type="number"
+                                    min="0"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-6"
+                                :label="t('Associated systemic illness')"
+                                :error="
+                                    (form.errors as Record<string, string>)
+                                        .illnesses
+                                "
+                                :hint="t('Tick all that apply')"
+                            >
+                                <CheckList
+                                    v-model="illnesses"
+                                    :options="illnessOptions"
+                                />
+                            </FormField>
+                            <FormField
+                                class="col-span-6"
+                                :label="t('Other illnesses or details')"
+                                for="systemic_illness"
+                                :error="form.errors.systemic_illness"
+                            >
+                                <TextInput
+                                    id="systemic_illness"
+                                    v-model="form.systemic_illness"
+                                    dir="auto"
+                                />
+                            </FormField>
+                        </div>
+                    </SectionCard>
+                </div>
+
+                <div class="space-y-6">
+                    <SectionCard :title="t('Referral & contact')" :icon="Phone">
+                        <div class="grid gap-4">
+                            <FormField
+                                :label="t('Referral date')"
+                                for="referral_date"
+                                :error="form.errors.referral_date"
+                            >
+                                <TextInput
+                                    id="referral_date"
+                                    v-model="form.referral_date"
+                                    type="date"
+                                />
+                            </FormField>
+                            <FormField
+                                :label="t('Referring doctor')"
+                                for="referring_doctor"
+                                :error="form.errors.referring_doctor"
+                            >
+                                <SuggestInput
+                                    id="referring_doctor"
+                                    v-model="form.referring_doctor"
+                                    :options="doctorOptions"
+                                    dir="auto"
+                                />
+                            </FormField>
+                            <FormField
+                                :label="t('Parent phone')"
+                                for="phone"
+                                :error="form.errors.phone"
+                            >
+                                <TextInput
+                                    id="phone"
+                                    v-model="form.phone"
+                                    type="tel"
+                                    dir="ltr"
+                                />
+                            </FormField>
+                            <FormField
+                                :label="t('Second phone')"
+                                for="phone_alt"
+                                :error="form.errors.phone_alt"
+                            >
+                                <TextInput
+                                    id="phone_alt"
+                                    v-model="form.phone_alt"
+                                    type="tel"
+                                    dir="ltr"
+                                />
+                            </FormField>
+                            <FormField
+                                :label="t('Address')"
+                                for="address"
+                                :error="form.errors.address"
+                            >
+                                <TextInput
+                                    id="address"
+                                    v-model="form.address"
+                                    dir="auto"
+                                />
+                            </FormField>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard :title="t('Follow-up')" :icon="NotebookPen">
+                        <div class="grid gap-4">
+                            <FormField
+                                :label="t('Status')"
+                                :error="form.errors.status"
+                            >
+                                <NativeSelect
+                                    v-model="form.status"
+                                    :options="enumOptions('patient_status')"
+                                    :nullable="false"
+                                />
+                            </FormField>
+                            <FormField
+                                :label="t('Notes')"
+                                :error="form.errors.notes"
+                            >
+                                <TextArea v-model="form.notes" :rows="5" />
+                            </FormField>
+                        </div>
+                    </SectionCard>
+                </div>
             </div>
+        </form>
 
-            <div class="space-y-6">
-                <SectionCard :title="t('Referral & contact')" :icon="Phone">
-                    <div class="grid gap-4">
-                        <FormField
-                            :label="t('Referral date')"
-                            for="referral_date"
-                            :error="form.errors.referral_date"
-                        >
-                            <TextInput
-                                id="referral_date"
-                                v-model="form.referral_date"
-                                type="date"
-                            />
-                        </FormField>
-                        <FormField
-                            :label="t('Referring doctor')"
-                            for="referring_doctor"
-                            :error="form.errors.referring_doctor"
-                        >
-                            <SuggestInput
-                                id="referring_doctor"
-                                v-model="form.referring_doctor"
-                                :options="doctorOptions"
-                                dir="auto"
-                            />
-                        </FormField>
-                        <FormField
-                            :label="t('Parent phone')"
-                            for="phone"
-                            :error="form.errors.phone"
-                        >
-                            <TextInput
-                                id="phone"
-                                v-model="form.phone"
-                                type="tel"
-                                dir="ltr"
-                            />
-                        </FormField>
-                        <FormField
-                            :label="t('Second phone')"
-                            for="phone_alt"
-                            :error="form.errors.phone_alt"
-                        >
-                            <TextInput
-                                id="phone_alt"
-                                v-model="form.phone_alt"
-                                type="tel"
-                                dir="ltr"
-                            />
-                        </FormField>
-                        <FormField
-                            :label="t('Address')"
-                            for="address"
-                            :error="form.errors.address"
-                        >
-                            <TextInput
-                                id="address"
-                                v-model="form.address"
-                                dir="auto"
-                            />
-                        </FormField>
-                    </div>
-                </SectionCard>
-
-                <SectionCard :title="t('Follow-up')" :icon="NotebookPen">
-                    <div class="grid gap-4">
-                        <FormField
-                            :label="t('Status')"
-                            :error="form.errors.status"
-                        >
-                            <NativeSelect
-                                v-model="form.status"
-                                :options="enumOptions('patient_status')"
-                                :nullable="false"
-                            />
-                        </FormField>
-                        <FormField
-                            :label="t('Notes')"
-                            :error="form.errors.notes"
-                        >
-                            <TextArea v-model="form.notes" :rows="5" />
-                        </FormField>
-                    </div>
-                </SectionCard>
-            </div>
-        </div>
-    </form>
+        <PatientPanel
+            v-if="patient && panel.open"
+            v-model:tab="panel.tab"
+            :patient="patient"
+            :visits="visits ?? []"
+            :treatments="treatments ?? []"
+            :attachments="attachments ?? []"
+            @close="panel.open = false"
+        />
+    </div>
 </template>

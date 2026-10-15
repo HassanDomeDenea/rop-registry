@@ -6,6 +6,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientPrintController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReviewItemController;
@@ -42,6 +43,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('patients/{patient}/restore', [PatientController::class, 'restore'])->withTrashed()->name('patients.restore');
     Route::patch('patients/{patient}/status', [PatientController::class, 'status'])->name('patients.status');
     Route::get('patients/{patient}/print', PatientPrintController::class)->name('patients.print');
+    Route::get('patients/{patient}/merge', [PatientMergeController::class, 'create'])->name('patients.merge.create');
+    Route::post('patients/{patient}/merge', [PatientMergeController::class, 'store'])->name('patients.merge.store');
     Route::resource('patients', PatientController::class);
 
     Route::scopeBindings()->group(function () {

@@ -4,6 +4,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Download,
+    ExternalLink,
     FileText,
     ImagePlus,
     Trash2,
@@ -28,6 +29,8 @@ const props = defineProps<{
     patientId: number;
     attachments: Attachment[];
     visits: Visit[];
+    /** The visit being worked on: shown first and preselected for uploads. */
+    focusVisitId?: number | null;
 }>();
 
 const { t, formatBytes, formatDate, isRtl } = useI18n();
@@ -39,13 +42,11 @@ const dragging = ref(false);
 const uploading = ref(false);
 const progress = ref(0);
 const error = ref<string | null>(null);
-const visitId = ref<string | number | boolean | null>(null);
+const visitId = ref<string | number | boolean | null>(
+    props.focusVisitId ?? null,
+);
 const viewerIndex = ref<number | null>(null);
 const deleting = ref<Attachment | null>(null);
-
-const viewed = computed(() =>
-    viewerIndex.value === null ? null : props.attachments[viewerIndex.value],
-);
 
 const visitOptions = computed(() =>
     props.visits.map((visit, index) => ({
@@ -54,11 +55,54 @@ const visitOptions = computed(() =>
     })),
 );
 
-function visitLabel(id: number | null) {
-    const index = props.visits.findIndex((visit) => visit.id === id);
+/** Which attachments are listed: all of them, those of no visit, or those of one visit. */
+const filter = ref<string | number | boolean | null>(
+    props.focusVisitId &&
+        props.attachments.some(
+            (attachment) => attachment.visit_id === props.focusVisitId,
+        )
+        ? String(props.focusVisitId)
+        : 'all',
+);
 
-    return index === -1 ? null : `${t('Visit')} ${index + 1}`;
+function matches(attachment: Attachment, value: unknown) {
+    if (value === 'all') {
+        return true;
+    }
+
+    return value === 'none'
+        ? attachment.visit_id === null
+        : String(attachment.visit_id) === String(value);
 }
+
+const filterOptions = computed(() => {
+    const count = (value: string) =>
+        props.attachments.filter((attachment) => matches(attachment, value))
+            .length;
+
+    return [
+        {
+            value: 'all',
+            label: `${t('All attachments')} (${props.attachments.length})`,
+        },
+        ...visitOptions.value.map((option) => ({
+            value: String(option.value),
+            label: `${option.label}${option.value === props.focusVisitId ? ` · ${t('this visit')}` : ''} (${count(String(option.value))})`,
+        })),
+        {
+            value: 'none',
+            label: `${t('Not linked to a visit')} (${count('none')})`,
+        },
+    ];
+});
+
+const shown = computed(() =>
+    props.attachments.filter((attachment) => matches(attachment, filter.value)),
+);
+
+const viewed = computed(() =>
+    viewerIndex.value === null ? null : shown.value[viewerIndex.value],
+);
 
 function upload(files: File[]) {
     const accepted = files.filter((file) => ACCEPTED.test(file.type));
@@ -81,6 +125,7 @@ function upload(files: File[]) {
         {
             forceFormData: true,
             preserveScroll: true,
+            preserveState: true,
             onStart: () => {
                 uploading.value = true;
                 progress.value = 0;
@@ -147,7 +192,7 @@ function step(offset: number) {
         return;
     }
 
-    const count = props.attachments.length;
+    const count = shown.value.length;
 
     viewerIndex.value = (viewerIndex.value + offset + count) % count;
 }
@@ -164,6 +209,21 @@ function saveCaption(attachment: Attachment, caption: string) {
     );
 }
 
+/** Link the attachment to another visit of the patient, or to none. */
+function link(attachment: Attachment, value: unknown) {
+    const visit = value === null || value === '' ? null : Number(value);
+
+    if (visit === attachment.visit_id) {
+        return;
+    }
+
+    router.patch(
+        attachmentRoutes.update.url(attachment.id),
+        { caption: attachment.caption, visit_id: visit },
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
 function destroy() {
     if (!deleting.value) {
         return;
@@ -171,6 +231,7 @@ function destroy() {
 
     router.delete(attachmentRoutes.destroy.url(deleting.value.id), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             deleting.value = null;
             viewerIndex.value = null;
@@ -180,9 +241,9 @@ function destroy() {
 </script>
 
 <template>
-    <div class="space-y-5">
+    <div class="@container space-y-5">
         <div
-            class="rounded-xl border-2 border-dashed px-6 py-7 text-center transition-colors"
+            class="rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors @xl:px-6 @xl:py-7"
             :class="
                 dragging
                     ? 'border-primary bg-accent'
@@ -199,7 +260,7 @@ function destroy() {
             <p class="mt-1 text-xs text-muted-foreground">
                 {{ t('or paste from the clipboard with Ctrl+V') }}
             </p>
-            <div class="mt-4 flex items-center justify-center gap-2">
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
                 <NativeSelect
                     v-if="visits.length"
                     v-model="visitId"
@@ -235,9 +296,29 @@ function destroy() {
             </p>
         </div>
 
-        <div v-if="attachments.length" class="grid grid-cols-4 gap-4">
+        <div
+            v-if="attachments.length && visits.length"
+            class="flex items-center justify-between gap-3"
+        >
+            <NativeSelect
+                v-model="filter"
+                class="w-72 max-w-full"
+                size="sm"
+                :options="filterOptions"
+                :nullable="false"
+                :aria-label="t('Show')"
+            />
+            <span class="text-xs text-muted-foreground tabular-nums">
+                {{ shown.length }} / {{ attachments.length }}
+            </span>
+        </div>
+
+        <div
+            v-if="shown.length"
+            class="grid grid-cols-2 gap-4 @2xl:grid-cols-3 @4xl:grid-cols-4"
+        >
             <figure
-                v-for="(attachment, index) in attachments"
+                v-for="(attachment, index) in shown"
                 :key="attachment.id"
                 class="group overflow-hidden rounded-lg border bg-card"
             >
@@ -281,11 +362,17 @@ function destroy() {
                         <span class="truncate">
                             {{ formatDate(attachment.created_at) }} ·
                             {{ formatBytes(attachment.size) }}
-                            <template v-if="visitLabel(attachment.visit_id)">
-                                · {{ visitLabel(attachment.visit_id) }}
-                            </template>
                         </span>
                         <span class="flex shrink-0 items-center">
+                            <a
+                                :href="attachment.url"
+                                target="_blank"
+                                rel="noopener"
+                                class="rounded-sm p-1 hover:text-foreground"
+                                :title="t('Open in a new tab')"
+                            >
+                                <ExternalLink class="size-3.5" />
+                            </a>
                             <a
                                 :href="`${attachment.url}?download=1`"
                                 class="rounded-sm p-1 hover:text-foreground"
@@ -303,9 +390,26 @@ function destroy() {
                             </button>
                         </span>
                     </div>
+                    <NativeSelect
+                        v-if="visits.length"
+                        size="sm"
+                        :model-value="attachment.visit_id"
+                        :options="visitOptions"
+                        :placeholder="t('Not linked to a visit')"
+                        :aria-label="t('Linked visit')"
+                        :title="t('Linked visit')"
+                        @update:model-value="link(attachment, $event)"
+                    />
                 </figcaption>
             </figure>
         </div>
+
+        <p
+            v-else-if="attachments.length"
+            class="py-6 text-center text-sm text-muted-foreground"
+        >
+            {{ t('No attachments in this selection.') }}
+        </p>
 
         <Dialog
             :open="viewed !== null && viewed !== undefined"
@@ -336,7 +440,7 @@ function destroy() {
                         :title="viewed.original_name"
                         class="size-full"
                     />
-                    <template v-if="attachments.length > 1">
+                    <template v-if="shown.length > 1">
                         <Button
                             variant="secondary"
                             size="icon"
@@ -365,17 +469,26 @@ function destroy() {
                     class="flex items-center justify-between text-xs text-muted-foreground"
                 >
                     <span>
-                        {{ (viewerIndex ?? 0) + 1 }} /
-                        {{ attachments.length }} ·
+                        {{ (viewerIndex ?? 0) + 1 }} / {{ shown.length }} ·
                         {{ formatDate(viewed.created_at) }} ·
                         {{ formatBytes(viewed.size) }}
                     </span>
-                    <a
-                        :href="`${viewed.url}?download=1`"
-                        class="inline-flex items-center gap-1 hover:text-foreground"
-                    >
-                        <Download class="size-3.5" />{{ t('Download') }}
-                    </a>
+                    <span class="flex items-center gap-2">
+                        <Button as-child variant="outline" size="sm">
+                            <a
+                                :href="viewed.url"
+                                target="_blank"
+                                rel="noopener"
+                            >
+                                <ExternalLink />{{ t('Open in a new tab') }}
+                            </a>
+                        </Button>
+                        <Button as-child variant="outline" size="sm">
+                            <a :href="`${viewed.url}?download=1`">
+                                <Download />{{ t('Download') }}
+                            </a>
+                        </Button>
+                    </span>
                 </div>
             </DialogContent>
         </Dialog>

@@ -15,11 +15,13 @@ export function useUnsavedChanges(isDirty: () => boolean) {
     const guarded = () => isDirty() && !saving;
 
     const stopListening = router.on('before', (event) => {
-        if (!guarded()) {
+        const { url, method, data } = event.detail.visit;
+
+        // Only leaving the page loses the form; actions taken on the page itself, like
+        // uploading an attachment, return to it with the typed values preserved.
+        if (!guarded() || method !== 'get') {
             return;
         }
-
-        const { url, method, data } = event.detail.visit;
 
         pending = () => router.visit(url, { method, data });
         confirming.value = true;

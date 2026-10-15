@@ -9,6 +9,7 @@ import {
     FileClock,
     History,
     Images,
+    Merge,
     Pencil,
     Plus,
     Printer,
@@ -16,7 +17,6 @@ import {
     Stethoscope,
     Syringe,
     Trash2,
-    Zap,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import AttachmentGallery from '@/components/registry/AttachmentGallery.vue';
@@ -25,16 +25,19 @@ import ConfirmDialog from '@/components/registry/ConfirmDialog.vue';
 import EmptyState from '@/components/registry/EmptyState.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
+import PatientDetails from '@/components/registry/PatientDetails.vue';
 import PatientFlags from '@/components/registry/PatientFlags.vue';
 import Pill from '@/components/registry/Pill.vue';
 import ReviewPanel from '@/components/registry/ReviewPanel.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
+import TreatmentCard from '@/components/registry/TreatmentCard.vue';
 import TreatmentDialog from '@/components/registry/TreatmentDialog.vue';
 import VisitCard from '@/components/registry/VisitCard.vue';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCaptureStatus } from '@/composables/useCaptureStatus';
 import { useI18n } from '@/composables/useI18n';
+import { usePatientTimeline } from '@/composables/usePatientTimeline';
 import captureRoutes from '@/routes/captures';
 import patientRoutes from '@/routes/patients';
 import type {
@@ -142,55 +145,10 @@ const tabs = computed(() => [
     },
 ]);
 
-type TimelineEntry =
-    | {
-          kind: 'visit';
-          key: string;
-          date: string | null;
-          visit: Visit;
-          number: number;
-      }
-    | {
-          kind: 'treatment';
-          key: string;
-          date: string | null;
-          treatment: Treatment;
-      };
-
-/** Visits and treatments in one chronological list; undated records come last. */
-const timeline = computed<TimelineEntry[]>(() => {
-    const entries: TimelineEntry[] = [
-        ...props.visits.map((visit, index) => ({
-            kind: 'visit' as const,
-            key: `visit-${visit.id}`,
-            date: visit.visit_date,
-            visit,
-            number: index + 1,
-        })),
-        ...props.treatments.map((treatment) => ({
-            kind: 'treatment' as const,
-            key: `treatment-${treatment.id}`,
-            date: treatment.performed_date,
-            treatment,
-        })),
-    ];
-
-    return entries.sort((a, b) => {
-        if (a.date === b.date) {
-            return a.kind === b.kind ? 0 : a.kind === 'visit' ? -1 : 1;
-        }
-
-        if (a.date === null) {
-            return 1;
-        }
-
-        if (b.date === null) {
-            return -1;
-        }
-
-        return a.date < b.date ? -1 : 1;
-    });
-});
+const timeline = usePatientTimeline(
+    () => props.visits,
+    () => props.treatments,
+);
 
 const treatmentDialogOpen = ref(false);
 const editingTreatment = ref<Treatment | null>(null);
@@ -263,76 +221,6 @@ function updateStatus(status: unknown) {
         { preserveScroll: true },
     );
 }
-
-const details = computed(() =>
-    [
-        { label: t('Clinic file no.'), value: props.patient.file_number },
-        { label: t('Mother name'), value: props.patient.mother_name },
-        { label: t('Sex'), value: enumLabel('sex', props.patient.sex) },
-        { label: t('Date of birth'), value: formatDate(props.patient.dob) },
-        {
-            label: t('Gestational age'),
-            value: formatGestationalAge(
-                props.patient.ga_weeks,
-                props.patient.ga_days,
-            ),
-        },
-        {
-            label: t('Birth weight (g)'),
-            value: formatNumber(props.patient.birth_weight_g),
-        },
-        {
-            label: t('Multiple births'),
-            value: enumLabel('multiplicity', props.patient.multiplicity),
-        },
-        {
-            label: t('Delivery mode'),
-            value: enumLabel('delivery_mode', props.patient.delivery_mode),
-        },
-        {
-            label: t('NICU stay (days)'),
-            value: formatNumber(props.patient.nicu_days),
-        },
-        {
-            label: t('Respiratory support'),
-            value:
-                enumLabel(
-                    'respiratory_support',
-                    props.patient.respiratory_support,
-                ) +
-                (props.patient.support_days !== null
-                    ? ` · ${t(':count days', { count: props.patient.support_days })}`
-                    : ''),
-        },
-        {
-            label: t('O₂ days'),
-            value: formatNumber(props.patient.o2_days, ''),
-            optional: true,
-        },
-        {
-            label: t('CPAP days'),
-            value: formatNumber(props.patient.cpap_days, ''),
-            optional: true,
-        },
-        {
-            label: t('Associated systemic illness'),
-            value: props.patient.illness_summary,
-        },
-        {
-            label: t('Referral date'),
-            value: formatDate(props.patient.referral_date),
-        },
-        { label: t('Referring doctor'), value: props.patient.referring_doctor },
-        { label: t('Parent phone'), value: props.patient.phone, ltr: true },
-        {
-            label: t('Second phone'),
-            value: props.patient.phone_alt,
-            ltr: true,
-            optional: true,
-        },
-        { label: t('Address'), value: props.patient.address },
-    ].filter((row) => !row.optional || row.value),
-);
 </script>
 
 <template>
@@ -368,10 +256,18 @@ const details = computed(() =>
                 </span>
             </span>
         </span>
-        <Button size="sm" variant="outline" @click="confirmIdentity">
-            <BadgeCheck />
-            {{ t('Confirm identity') }}
-        </Button>
+        <span class="flex shrink-0 items-center gap-2">
+            <Button as-child size="sm" variant="outline">
+                <Link :href="patientRoutes.merge.create.url(patient.id)">
+                    <Merge />
+                    {{ t('Merge with another record') }}
+                </Link>
+            </Button>
+            <Button size="sm" variant="outline" @click="confirmIdentity">
+                <BadgeCheck />
+                {{ t('Confirm identity') }}
+            </Button>
+        </span>
     </div>
 
     <PageHeader :title="patient.name" :back-href="patientRoutes.index.url()">
@@ -530,106 +426,8 @@ const details = computed(() =>
                         :attachments-count="attachmentsOf(entry.visit)"
                         @delete="deletingVisit = $event"
                     />
-                    <article
-                        v-else
-                        class="flex items-start justify-between gap-4 rounded-xl border px-5 py-4 shadow-xs"
-                        :class="
-                            entry.treatment.type === 'laser'
-                                ? 'border-laser/30 bg-laser/[0.07]'
-                                : 'border-eylea/30 bg-eylea/[0.07]'
-                        "
-                    >
-                        <div class="flex items-start gap-3">
-                            <span
-                                class="flex size-7 shrink-0 items-center justify-center rounded-full text-white"
-                                :class="
-                                    entry.treatment.type === 'laser'
-                                        ? 'bg-laser'
-                                        : 'bg-eylea'
-                                "
-                            >
-                                <component
-                                    :is="
-                                        entry.treatment.type === 'laser'
-                                            ? Zap
-                                            : Syringe
-                                    "
-                                    class="size-3.5"
-                                />
-                            </span>
-                            <div class="space-y-1">
-                                <p class="text-sm font-semibold">
-                                    {{
-                                        enumLabel(
-                                            'treatment_type',
-                                            entry.treatment.type,
-                                        )
-                                    }}
-                                    ·
-                                    {{
-                                        enumLabel(
-                                            'eye_side',
-                                            entry.treatment.eye,
-                                        )
-                                    }}
-                                </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{
-                                        entry.treatment.performed_date
-                                            ? formatDate(
-                                                  entry.treatment
-                                                      .performed_date,
-                                              )
-                                            : t('Date not documented')
-                                    }}
-                                    <template
-                                        v-if="entry.treatment.pma_days !== null"
-                                    >
-                                        · {{ t('PMA') }}
-                                        {{
-                                            formatWeeks(
-                                                entry.treatment.pma_days,
-                                            )
-                                        }}
-                                    </template>
-                                    <template v-if="entry.treatment.agent">
-                                        ·
-                                        <span dir="auto">{{
-                                            entry.treatment.agent
-                                        }}</span>
-                                    </template>
-                                    <template
-                                        v-if="entry.treatment.performed_by"
-                                    >
-                                        ·
-                                        <span dir="auto">{{
-                                            entry.treatment.performed_by
-                                        }}</span>
-                                    </template>
-                                    <template v-if="entry.treatment.location">
-                                        ·
-                                        <span dir="auto">{{
-                                            entry.treatment.location
-                                        }}</span>
-                                    </template>
-                                </p>
-                                <p
-                                    v-if="entry.treatment.notes"
-                                    class="text-sm"
-                                    dir="auto"
-                                >
-                                    {{ entry.treatment.notes }}
-                                </p>
-                                <p
-                                    v-if="entry.treatment.source_reference"
-                                    class="text-xs text-muted-foreground"
-                                    dir="auto"
-                                >
-                                    {{ entry.treatment.source_reference }}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="flex shrink-0 items-center gap-1">
+                    <TreatmentCard v-else :treatment="entry.treatment">
+                        <template #actions>
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
@@ -647,8 +445,8 @@ const details = computed(() =>
                             >
                                 <Trash2 />
                             </Button>
-                        </div>
-                    </article>
+                        </template>
+                    </TreatmentCard>
                 </template>
 
                 <div
@@ -733,24 +531,7 @@ const details = computed(() =>
             </SectionCard>
 
             <SectionCard :title="t('Patient details')" flush>
-                <dl class="divide-y text-sm">
-                    <div
-                        v-for="row in details"
-                        :key="row.label"
-                        class="grid grid-cols-5 gap-3 px-5 py-2.5"
-                    >
-                        <dt class="col-span-2 text-muted-foreground">
-                            {{ row.label }}
-                        </dt>
-                        <dd
-                            class="col-span-3 break-words"
-                            :dir="row.ltr ? 'ltr' : 'auto'"
-                            :class="row.ltr ? 'text-start' : ''"
-                        >
-                            {{ row.value || '—' }}
-                        </dd>
-                    </div>
-                </dl>
+                <PatientDetails :patient="patient" />
             </SectionCard>
 
             <SectionCard v-if="patient.notes" :title="t('Notes')">
@@ -772,15 +553,26 @@ const details = computed(() =>
                 </p>
             </SectionCard>
 
-            <Button
-                v-if="!patient.deleted_at"
-                variant="ghost"
-                class="w-full text-muted-foreground hover:text-destructive"
-                @click="deletingPatient = true"
-            >
-                <Trash2 />
-                {{ t('Move patient to the recycle bin') }}
-            </Button>
+            <div v-if="!patient.deleted_at" class="space-y-1">
+                <Button
+                    as-child
+                    variant="ghost"
+                    class="w-full text-muted-foreground"
+                >
+                    <Link :href="patientRoutes.merge.create.url(patient.id)">
+                        <Merge />
+                        {{ t('Merge with another record') }}
+                    </Link>
+                </Button>
+                <Button
+                    variant="ghost"
+                    class="w-full text-muted-foreground hover:text-destructive"
+                    @click="deletingPatient = true"
+                >
+                    <Trash2 />
+                    {{ t('Move patient to the recycle bin') }}
+                </Button>
+            </div>
         </div>
     </div>
 

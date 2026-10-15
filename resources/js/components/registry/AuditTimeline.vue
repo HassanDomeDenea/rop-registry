@@ -16,6 +16,7 @@ const eventTones: Record<Audit['event'], PillTone> = {
     updated: 'info',
     deleted: 'danger',
     restored: 'warning',
+    merged: 'info',
 };
 
 const eventLabels: Record<Audit['event'], string> = {
@@ -23,6 +24,7 @@ const eventLabels: Record<Audit['event'], string> = {
     updated: 'Updated',
     deleted: 'Deleted',
     restored: 'Restored',
+    merged: 'Merged',
 };
 
 const typeLabels: Record<string, string> = {

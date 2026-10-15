@@ -14,6 +14,9 @@ const props = defineProps<{
     visit: Visit;
     number: number;
     attachmentsCount: number;
+    /** Leaves out editing and deleting, e.g. beside a form that is being filled in. */
+    readonly?: boolean;
+    highlighted?: boolean;
 }>();
 
 defineEmits<{ delete: [visit: Visit] }>();
@@ -44,7 +47,10 @@ const routeArgs = computed(() => ({
 </script>
 
 <template>
-    <article class="rounded-xl border bg-card shadow-xs">
+    <article
+        class="rounded-xl border bg-card shadow-xs"
+        :class="highlighted ? 'ring-2 ring-primary/50' : ''"
+    >
         <header
             class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3"
         >
@@ -101,6 +107,7 @@ const routeArgs = computed(() => ({
                     </a>
                 </Button>
                 <Button
+                    v-if="!readonly"
                     as-child
                     variant="ghost"
                     size="icon-sm"
@@ -111,6 +118,7 @@ const routeArgs = computed(() => ({
                     </Link>
                 </Button>
                 <Button
+                    v-if="!readonly"
                     variant="ghost"
                     size="icon-sm"
                     :title="t('Delete')"

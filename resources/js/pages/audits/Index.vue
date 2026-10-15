@@ -29,6 +29,7 @@ const events = computed(() => [
     { value: 'updated', label: t('Updated') },
     { value: 'deleted', label: t('Deleted') },
     { value: 'restored', label: t('Restored') },
+    { value: 'merged', label: t('Merged') },
 ]);
 
 const types = computed(() => [
