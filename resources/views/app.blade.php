@@ -44,6 +44,12 @@
 
         @fonts
 
+        @if (config('registry.locales.'.app()->getLocale().'.dir') === 'rtl')
+            @foreach ([400, 500, 600] as $weight)
+                <link rel="preload" href="{{ Vite::asset("resources/fonts/readex-pro-arabic-{$weight}.woff2") }}" as="font" type="font/woff2" crossorigin>
+            @endforeach
+        @endif
+
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>

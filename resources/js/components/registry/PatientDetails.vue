@@ -6,8 +6,14 @@ import type { Patient } from '@/types';
 /** The recorded details of a patient as a label and value list. */
 const props = defineProps<{ patient: Patient }>();
 
-const { t, enumLabel, formatDate, formatGestationalAge, formatNumber } =
-    useI18n();
+const {
+    t,
+    enumLabel,
+    formatDate,
+    formatGestationalAge,
+    formatNumber,
+    formatRespiratorySupport,
+} = useI18n();
 
 const details = computed(() =>
     [
@@ -40,24 +46,7 @@ const details = computed(() =>
         },
         {
             label: t('Respiratory support'),
-            value:
-                enumLabel(
-                    'respiratory_support',
-                    props.patient.respiratory_support,
-                ) +
-                (props.patient.support_days !== null
-                    ? ` · ${t(':count days', { count: props.patient.support_days })}`
-                    : ''),
-        },
-        {
-            label: t('O₂ days'),
-            value: formatNumber(props.patient.o2_days, ''),
-            optional: true,
-        },
-        {
-            label: t('CPAP days'),
-            value: formatNumber(props.patient.cpap_days, ''),
-            optional: true,
+            value: formatRespiratorySupport(props.patient),
         },
         {
             label: t('Associated systemic illness'),

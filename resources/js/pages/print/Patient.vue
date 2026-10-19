@@ -20,6 +20,7 @@ const {
     formatDate,
     formatGestationalAge,
     formatNumber,
+    formatRespiratorySupport,
 } = useI18n();
 
 const header = computed(() => [
@@ -42,13 +43,7 @@ const header = computed(() => [
         enumLabel('delivery_mode', props.patient.delivery_mode),
     ],
     [t('NICU stay (days)'), formatNumber(props.patient.nicu_days)],
-    [
-        t('Respiratory support'),
-        enumLabel('respiratory_support', props.patient.respiratory_support) +
-            (props.patient.support_days !== null
-                ? ` · ${t(':count days', { count: props.patient.support_days })}`
-                : ''),
-    ],
+    [t('Respiratory support'), formatRespiratorySupport(props.patient)],
     [t('Referring doctor'), props.patient.referring_doctor ?? '—'],
     [t('Parent phone'), props.patient.phone ?? '—'],
     [t('Status'), enumLabel('patient_status', props.patient.status)],

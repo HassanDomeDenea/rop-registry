@@ -9,12 +9,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+@theme {
     --font-sans:
-        Instrument Sans, 'Readex Pro', ui-sans-serif, system-ui, sans-serif,
+        'Instrument Sans', 'Readex Pro', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+}
 
+@theme inline {
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -92,14 +94,72 @@
     }
 }
 
-@layer utilities {
-    body,
-    html {
+/*
+  Lines take their height and baseline from the first font in the stack. Instrument Sans
+  sets the baseline for Latin capitals, which leaves Arabic letters sitting low, so
+  right-to-left pages lead with Readex Pro and its balanced metrics below.
+*/
+@layer base {
+    html[dir='rtl'] {
         --font-sans:
-            'Instrument Sans', 'Readex Pro', ui-sans-serif, system-ui,
+            'Readex Pro', 'Instrument Sans', ui-sans-serif, system-ui,
             sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
             'Segoe UI Symbol', 'Noto Color Emoji';
     }
+}
+
+/*
+  Readex Pro (Arabic subset) is served from here rather than through the Vite font plugin
+  so its vertical metrics can be overridden. The stock metrics (ascent 1000, descent 250)
+  place the line's centre at Latin cap height; these put it in the middle of Arabic letters
+  and Western digits alike. The space is included so the font can lead the stack.
+*/
+@font-face {
+    font-family: 'Readex Pro';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/readex-pro-arabic-400.woff2') format('woff2');
+    ascent-override: 93%;
+    descent-override: 32%;
+    line-gap-override: 0%;
+    unicode-range:
+        U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
+        U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4,
+        U+10EFC-10EFF, U+1EE00-1EEFF;
+}
+
+@font-face {
+    font-family: 'Readex Pro';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/readex-pro-arabic-500.woff2') format('woff2');
+    ascent-override: 93%;
+    descent-override: 32%;
+    line-gap-override: 0%;
+    unicode-range:
+        U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
+        U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4,
+        U+10EFC-10EFF, U+1EE00-1EEFF;
+}
+
+@font-face {
+    font-family: 'Readex Pro';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/readex-pro-arabic-600.woff2') format('woff2');
+    ascent-override: 93%;
+    descent-override: 32%;
+    line-gap-override: 0%;
+    unicode-range:
+        U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
+        U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4,
+        U+10EFC-10EFF, U+1EE00-1EEFF;
 }
 
 /*

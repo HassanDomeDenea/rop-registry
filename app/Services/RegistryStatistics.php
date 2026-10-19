@@ -207,12 +207,29 @@ class RegistryStatistics
             $this->numeric($this->text('Gestational age (weeks)'), $patients->map(fn (Patient $patient): ?float => $patient->gestationalAgeInDays() === null ? null : $patient->gestationalAgeInDays() / 7)),
             $this->numeric($this->text('Birth weight (g)'), $patients->pluck('birth_weight_g'), 0),
             $this->numeric($this->text('NICU stay (days)'), $patients->pluck('nicu_days')),
-            $this->numeric($this->text('Respiratory support (days)'), $patients->pluck('support_days')),
+            $this->numeric($this->text('Days on O₂'), $this->supportDays($patients, RespiratorySupport::Oxygen, 'o2_days')),
+            $this->numeric($this->text('Days on CPAP'), $this->supportDays($patients, RespiratorySupport::Cpap, 'cpap_days')),
             $this->numeric($this->text('Age at first examination (days)'), $firstExamAge),
             $this->numeric($this->text('PMA at first examination (weeks)'), $firstExamPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
             $this->numeric($this->text('PMA at first treatment (weeks)'), $treatmentPma->map(fn (?int $days): ?float => $days === null ? null : $days / 7)),
             $this->numeric($this->text('Examinations per patient'), $patients->pluck('exams_count')),
         ];
+    }
+
+    /**
+     * The days on one type of support, among the patients who received it: alone it is kept in
+     * `support_days`, together with the other type in its own column. O₂ and CPAP days may
+     * overlap, so they are never added up; an earlier combined total counts as not recorded.
+     *
+     * @param  Collection<int, Patient>  $patients
+     * @return Collection<int, int|null>
+     */
+    protected function supportDays(Collection $patients, RespiratorySupport $alone, string $column): Collection
+    {
+        return $patients
+            ->filter(fn (Patient $patient): bool => in_array($patient->respiratory_support, [$alone, RespiratorySupport::OxygenAndCpap], true))
+            ->map(fn (Patient $patient): ?int => $patient->respiratory_support === $alone ? $patient->support_days : $patient->getAttribute($column))
+            ->values();
     }
 
     /**

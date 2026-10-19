@@ -11,7 +11,9 @@ use App\Models\Patient;
 use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PatientTest extends TestCase
@@ -93,6 +95,83 @@ class PatientTest extends TestCase
         $this->assertSame(1000, $audit->old_values['birth_weight_g']);
         $this->assertSame(1400, $audit->new_values['birth_weight_g']);
         $this->assertArrayNotHasKey('nicu_days', $audit->new_values);
+    }
+
+    /**
+     * @return array<string, array{array<string, int|string|null>, array<string, int|null>}>
+     */
+    public static function supportDays(): array
+    {
+        return [
+            'one type keeps its days as the total' => [
+                ['respiratory_support' => 'o2', 'o2_days' => 8],
+                ['support_days' => 8, 'o2_days' => null, 'cpap_days' => null],
+            ],
+            'one type drops a split' => [
+                ['respiratory_support' => 'cpap', 'support_days' => 6, 'o2_days' => 2, 'cpap_days' => 4],
+                ['support_days' => 6, 'o2_days' => null, 'cpap_days' => null],
+            ],
+            'O2 and CPAP days stay separate' => [
+                ['respiratory_support' => 'o2_cpap', 'o2_days' => 9, 'cpap_days' => 5],
+                ['support_days' => null, 'o2_days' => 9, 'cpap_days' => 5],
+            ],
+            'O2 and CPAP keep an earlier combined total' => [
+                ['respiratory_support' => 'o2_cpap', 'support_days' => 12, 'o2_days' => 4],
+                ['support_days' => 12, 'o2_days' => 4, 'cpap_days' => null],
+            ],
+            'no support has no days' => [
+                ['respiratory_support' => 'none', 'support_days' => 5, 'o2_days' => 5],
+                ['support_days' => null, 'o2_days' => null, 'cpap_days' => null],
+            ],
+            'unrecorded support keeps what was entered' => [
+                ['respiratory_support' => null, 'support_days' => 5],
+                ['support_days' => 5, 'o2_days' => null, 'cpap_days' => null],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, int|string|null>  $input
+     * @param  array<string, int|null>  $expected
+     */
+    #[DataProvider('supportDays')]
+    public function test_support_days_follow_the_type_of_respiratory_support(array $input, array $expected)
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('patients.store'), [...$this->newPatient(), ...$input])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($expected, Patient::query()->sole()->only(['support_days', 'o2_days', 'cpap_days']));
+    }
+
+    public function test_existing_days_of_a_single_type_of_support_move_without_losing_values()
+    {
+        $rows = [
+            'o2' => ['respiratory_support' => 'o2', 'support_days' => null, 'o2_days' => 8, 'cpap_days' => null],
+            'cpap' => ['respiratory_support' => 'cpap', 'support_days' => null, 'o2_days' => null, 'cpap_days' => 7],
+            'total' => ['respiratory_support' => 'o2', 'support_days' => 10, 'o2_days' => null, 'cpap_days' => null],
+            'conflict' => ['respiratory_support' => 'o2', 'support_days' => 10, 'o2_days' => 4, 'cpap_days' => null],
+            'split' => ['respiratory_support' => 'o2_cpap', 'support_days' => null, 'o2_days' => 9, 'cpap_days' => 5],
+            'partial' => ['respiratory_support' => 'o2_cpap', 'support_days' => null, 'o2_days' => 2, 'cpap_days' => null],
+        ];
+
+        $ids = collect($rows)->map(fn (array $row): int => Patient::factory()->create(['respiratory_support' => null])->id);
+
+        foreach ($rows as $key => $row) {
+            DB::table('patients')->where('id', $ids[$key])->update($row);
+        }
+
+        (require database_path('migrations/2026_10_19_213201_consolidate_respiratory_support_days.php'))->up();
+
+        $stored = fn (string $key): array => (array) DB::table('patients')->where('id', $ids[$key])
+            ->first(['support_days', 'o2_days', 'cpap_days']);
+
+        $this->assertEquals(['support_days' => 8, 'o2_days' => null, 'cpap_days' => null], $stored('o2'));
+        $this->assertEquals(['support_days' => 7, 'o2_days' => null, 'cpap_days' => null], $stored('cpap'));
+        $this->assertEquals(['support_days' => 10, 'o2_days' => null, 'cpap_days' => null], $stored('total'));
+        $this->assertEquals(['support_days' => 10, 'o2_days' => 4, 'cpap_days' => null], $stored('conflict'));
+        $this->assertEquals(['support_days' => null, 'o2_days' => 9, 'cpap_days' => 5], $stored('split'));
+        $this->assertEquals(['support_days' => null, 'o2_days' => 2, 'cpap_days' => null], $stored('partial'));
     }
 
     public function test_patient_can_be_registered_together_with_the_first_examination()

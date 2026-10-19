@@ -31,6 +31,15 @@ function share(value: number) {
 
     return `${((value / base) * 100).toFixed(value === base || value === 0 ? 0 : 1)}%`;
 }
+
+/**
+ * Labels without Arabic letters, such as "28–29" or "< 1000", are numbers and symbols
+ * only. Read in a right-to-left line they come out reversed ("29–28"), so they keep
+ * their left-to-right order.
+ */
+function labelDirection(label: string) {
+    return /\p{Script=Arabic}/u.test(label) ? undefined : 'ltr';
+}
 </script>
 
 <template>
@@ -54,7 +63,9 @@ function share(value: number) {
                 <span
                     class="truncate text-muted-foreground group-hover:text-foreground"
                 >
-                    {{ item.label }}
+                    <bdi :dir="labelDirection(item.label)">{{
+                        item.label
+                    }}</bdi>
                 </span>
                 <span class="flex h-3.5 items-center">
                     <span
@@ -62,13 +73,16 @@ function share(value: number) {
                         :style="{ width: `${(item.value / max) * 100}%` }"
                     />
                 </span>
-                <span class="min-w-16 text-end tabular-nums">
+                <!-- Separate boxes keep the count and the share from running together as one number. -->
+                <span
+                    class="flex min-w-16 items-baseline justify-end gap-1.5 tabular-nums"
+                >
                     <span class="font-medium">{{
                         formatNumber(item.value)
                     }}</span>
                     <span
                         v-if="share(item.value)"
-                        class="ms-1.5 text-xs text-muted-foreground"
+                        class="text-xs text-muted-foreground"
                     >
                         {{ share(item.value) }}
                     </span>

@@ -104,6 +104,7 @@ class Patient extends Model
     {
         static::saving(function (Patient $patient): void {
             $patient->name_key = app(DuplicateFinder::class)->normalize((string) $patient->name);
+            $patient->normalizeSupportDays();
         });
 
         static::saved(function (Patient $patient): void {
@@ -237,6 +238,29 @@ class Patient extends Model
     protected function auditExcluded(): array
     {
         return ['id', 'name_key', 'created_at', 'updated_at', 'deleted_at', ...self::SUMMARY_COLUMNS];
+    }
+
+    /**
+     * Keep the support days consistent with the type of support: a single type keeps its days
+     * in `support_days`, and O₂ + CPAP keeps separate `o2_days` and `cpap_days`, which may
+     * overlap. Older O₂ + CPAP records may hold only a combined `support_days`, which stays.
+     */
+    protected function normalizeSupportDays(): void
+    {
+        $support = $this->respiratory_support;
+
+        if ($support === null || $support === RespiratorySupport::OxygenAndCpap) {
+            return;
+        }
+
+        $this->support_days = match ($support) {
+            RespiratorySupport::None => null,
+            RespiratorySupport::Oxygen => $this->support_days ?? $this->o2_days,
+            RespiratorySupport::Cpap => $this->support_days ?? $this->cpap_days,
+            default => $this->support_days,
+        };
+        $this->o2_days = null;
+        $this->cpap_days = null;
     }
 
     /**

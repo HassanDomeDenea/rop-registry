@@ -74,6 +74,27 @@ class RegistryToolsTest extends TestCase
             ->assertJsonCount(0);
     }
 
+    public function test_statistics_count_o2_and_cpap_days_separately_without_adding_them_up()
+    {
+        foreach ([
+            ['respiratory_support' => 'o2', 'support_days' => 8],
+            ['respiratory_support' => 'cpap', 'support_days' => 5],
+            ['respiratory_support' => 'o2_cpap', 'support_days' => null, 'o2_days' => 4, 'cpap_days' => 6],
+            ['respiratory_support' => 'o2_cpap', 'support_days' => 12, 'o2_days' => null, 'cpap_days' => null],
+            ['respiratory_support' => 'none', 'support_days' => null],
+        ] as $attributes) {
+            Patient::factory()->create($attributes);
+        }
+
+        $this->actingAs(User::factory()->create())->get(route('statistics.index'))
+            ->assertInertia(function ($page): void {
+                $rows = collect($page->toArray()['props']['statistics']['numeric'])->keyBy('label');
+
+                $this->assertEquals([2, 1, 4, 8], [$rows['Days on O₂']['n'], $rows['Days on O₂']['missing'], $rows['Days on O₂']['min'], $rows['Days on O₂']['max']]);
+                $this->assertEquals([2, 1, 5, 6], [$rows['Days on CPAP']['n'], $rows['Days on CPAP']['missing'], $rows['Days on CPAP']['min'], $rows['Days on CPAP']['max']]);
+            });
+    }
+
     public function test_unverified_patients_are_left_out_of_statistics_and_reminders_until_confirmed()
     {
         $this->travelTo('2026-10-07 10:00:00');

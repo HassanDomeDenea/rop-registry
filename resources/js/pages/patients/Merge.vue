@@ -46,8 +46,14 @@ const props = defineProps<{
     suggestions: Candidate[];
 }>();
 
-const { t, enumLabel, formatDate, formatGestationalAge, formatNumber } =
-    useI18n();
+const {
+    t,
+    enumLabel,
+    formatDate,
+    formatGestationalAge,
+    formatNumber,
+    formatRespiratorySupport,
+} = useI18n();
 
 const reasons: Record<NonNullable<Candidate['reason']>, string> = {
     name: 'Similar name',
@@ -170,30 +176,13 @@ const fields = computed<Field[]>(() => [
     {
         key: 'respiratory_support',
         label: t('Respiratory support'),
-        values: (p) => [p.respiratory_support, p.support_days],
-        display: (p) =>
-            [
-                p.respiratory_support
-                    ? enumLabel('respiratory_support', p.respiratory_support)
-                    : null,
-                p.support_days !== null
-                    ? t(':count days', { count: p.support_days })
-                    : null,
-            ]
-                .filter(Boolean)
-                .join(' · '),
-    },
-    {
-        key: 'o2_days',
-        label: t('O₂ days'),
-        values: (p) => [p.o2_days],
-        display: (p) => formatNumber(p.o2_days, ''),
-    },
-    {
-        key: 'cpap_days',
-        label: t('CPAP days'),
-        values: (p) => [p.cpap_days],
-        display: (p) => formatNumber(p.cpap_days, ''),
+        values: (p) => [
+            p.respiratory_support,
+            p.support_days,
+            p.o2_days,
+            p.cpap_days,
+        ],
+        display: (p) => formatRespiratorySupport(p, ''),
     },
     {
         key: 'systemic_illness',

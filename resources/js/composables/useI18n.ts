@@ -204,6 +204,38 @@ export function useI18n() {
             : t(':count days ago', { count: Math.abs(days) });
     }
 
+    /** The type of respiratory support with its days, and the separate O₂ and CPAP days when recorded. */
+    function formatRespiratorySupport(
+        patient: {
+            respiratory_support: string | null;
+            support_days: number | null;
+            o2_days: number | null;
+            cpap_days: number | null;
+        },
+        fallback = '—',
+    ) {
+        return (
+            [
+                enumLabel(
+                    'respiratory_support',
+                    patient.respiratory_support,
+                    '',
+                ),
+                patient.support_days !== null
+                    ? t(':count days', { count: patient.support_days })
+                    : null,
+                patient.o2_days !== null
+                    ? `O₂ ${t(':count days', { count: patient.o2_days })}`
+                    : null,
+                patient.cpap_days !== null
+                    ? `CPAP ${t(':count days', { count: patient.cpap_days })}`
+                    : null,
+            ]
+                .filter(Boolean)
+                .join(' · ') || fallback
+        );
+    }
+
     function formatBytes(bytes: number) {
         if (bytes < 1024) {
             return `${bytes} B`;
@@ -231,6 +263,7 @@ export function useI18n() {
         formatDateTime,
         formatMonth,
         formatRelativeDays,
+        formatRespiratorySupport,
         formatBytes,
     };
 }

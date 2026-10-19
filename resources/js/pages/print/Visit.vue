@@ -24,6 +24,7 @@ const {
     formatDate,
     formatGestationalAge,
     formatNumber,
+    formatRespiratorySupport,
 } = useI18n();
 
 const record = computed(
@@ -72,21 +73,7 @@ const header = computed(() => [
         enumLabel('multiplicity', props.patient.multiplicity, ''),
     ],
     [t('Referral date'), formatDate(props.patient.referral_date, '')],
-    [
-        t('Respiratory support'),
-        [
-            enumLabel(
-                'respiratory_support',
-                props.patient.respiratory_support,
-                '',
-            ),
-            props.patient.support_days !== null
-                ? t(':count days', { count: props.patient.support_days })
-                : '',
-        ]
-            .filter(Boolean)
-            .join(' · '),
-    ],
+    [t('Respiratory support'), formatRespiratorySupport(props.patient, '')],
     [t('NICU stay (days)'), formatNumber(props.patient.nicu_days, '')],
 ]);
 </script>

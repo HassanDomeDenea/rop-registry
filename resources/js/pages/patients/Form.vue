@@ -78,6 +78,58 @@ const form = useForm<Record<string, string | number | null>>({
     status: props.patient?.status ?? 'active',
 });
 
+/**
+ * The days of the chosen type of support: one duration for a single type, and separate
+ * O₂ and CPAP days for both, which may overlap and are never added up.
+ */
+const supportDaysLabel = computed(() => {
+    switch (form.respiratory_support) {
+        case 'o2':
+            return t('Days on O₂');
+        case 'cpap':
+            return t('Days on CPAP');
+        case 'ventilator':
+            return t('Days on ventilator');
+        default:
+            return null;
+    }
+});
+
+/**
+ * Some earlier records of O₂ + CPAP hold only one total that cannot be split. It stays
+ * visible on those records so that it can be corrected or cleared.
+ */
+const hasCombinedTotal = ref(
+    props.patient?.respiratory_support === 'o2_cpap' &&
+        props.patient.support_days !== null,
+);
+
+// Switching between one type and both carries the days to the field that now holds them.
+watch(
+    () => form.respiratory_support,
+    (support, previous) => {
+        const splitField = (type: unknown) =>
+            type === 'o2' ? 'o2_days' : type === 'cpap' ? 'cpap_days' : null;
+
+        if (support === 'o2_cpap') {
+            const field = splitField(previous);
+
+            if (field && !hasCombinedTotal.value) {
+                form[field] ??= form.support_days;
+                form.support_days = null;
+            }
+
+            return;
+        }
+
+        const field = splitField(support);
+
+        if (field && previous === 'o2_cpap') {
+            form.support_days ??= form[field];
+        }
+    },
+);
+
 // The checklist is the only field that is not a single value.
 const illnesses = ref<string[] | null>(props.patient?.illnesses ?? null);
 
@@ -566,8 +618,9 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
+                                v-if="supportDaysLabel"
                                 class="col-span-2"
-                                :label="t('Support duration (days)')"
+                                :label="supportDaysLabel"
                                 for="support_days"
                                 :error="form.errors.support_days"
                             >
@@ -578,32 +631,51 @@ function submit() {
                                     min="0"
                                 />
                             </FormField>
-                            <FormField
-                                class="col-span-2"
-                                :label="t('O₂ days')"
-                                for="o2_days"
-                                :error="form.errors.o2_days"
+                            <template
+                                v-if="form.respiratory_support === 'o2_cpap'"
                             >
-                                <TextInput
-                                    id="o2_days"
-                                    v-model="form.o2_days"
-                                    type="number"
-                                    min="0"
-                                />
-                            </FormField>
-                            <FormField
-                                class="col-span-2"
-                                :label="t('CPAP days')"
-                                for="cpap_days"
-                                :error="form.errors.cpap_days"
-                            >
-                                <TextInput
-                                    id="cpap_days"
-                                    v-model="form.cpap_days"
-                                    type="number"
-                                    min="0"
-                                />
-                            </FormField>
+                                <FormField
+                                    class="col-span-2"
+                                    :label="t('O₂ days')"
+                                    for="o2_days"
+                                    :error="form.errors.o2_days"
+                                >
+                                    <TextInput
+                                        id="o2_days"
+                                        v-model="form.o2_days"
+                                        type="number"
+                                        min="0"
+                                    />
+                                </FormField>
+                                <FormField
+                                    class="col-span-2"
+                                    :label="t('CPAP days')"
+                                    for="cpap_days"
+                                    :error="form.errors.cpap_days"
+                                >
+                                    <TextInput
+                                        id="cpap_days"
+                                        v-model="form.cpap_days"
+                                        type="number"
+                                        min="0"
+                                    />
+                                </FormField>
+                                <FormField
+                                    v-if="hasCombinedTotal"
+                                    class="col-span-2"
+                                    :label="t('Total support (days)')"
+                                    for="support_days"
+                                    :error="form.errors.support_days"
+                                    :hint="t('Recorded earlier as one total')"
+                                >
+                                    <TextInput
+                                        id="support_days"
+                                        v-model="form.support_days"
+                                        type="number"
+                                        min="0"
+                                    />
+                                </FormField>
+                            </template>
                             <FormField
                                 class="col-span-6"
                                 :label="t('Associated systemic illness')"

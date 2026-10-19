@@ -15,10 +15,6 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
-                bunny('Readex Pro', {
-                    weights: [400, 500, 600],
-                    subsets: ['arabic'],
-                }),
             ],
         }),
         inertia(),
