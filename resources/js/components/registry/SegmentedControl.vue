@@ -3,12 +3,16 @@ import type { EnumOption } from '@/types';
 
 /**
  * A row of toggle buttons for short option lists. Clicking the active option
- * again clears it when the control is nullable.
+ * again clears it when the control is nullable. An option with a short label
+ * may carry its full name as a title, shown on hover and read by screen readers.
  */
 const model = defineModel<string | number | boolean | null>();
 
 const props = withDefaults(
-    defineProps<{ options: EnumOption[]; nullable?: boolean }>(),
+    defineProps<{
+        options: (EnumOption & { title?: string })[];
+        nullable?: boolean;
+    }>(),
     { nullable: true },
 );
 
@@ -33,6 +37,8 @@ function select(value: string) {
                     : 'text-muted-foreground hover:text-foreground'
             "
             :aria-pressed="model === option.value"
+            :title="option.title"
+            :aria-label="option.title"
             @click="select(option.value)"
         >
             {{ option.label }}

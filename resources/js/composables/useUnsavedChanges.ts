@@ -15,11 +15,12 @@ export function useUnsavedChanges(isDirty: () => boolean) {
     const guarded = () => isDirty() && !saving;
 
     const stopListening = router.on('before', (event) => {
-        const { url, method, data } = event.detail.visit;
+        const { url, method, data, prefetch } = event.detail.visit;
 
         // Only leaving the page loses the form; actions taken on the page itself, like
-        // uploading an attachment, return to it with the typed values preserved.
-        if (!guarded() || method !== 'get') {
+        // uploading an attachment, return to it with the typed values preserved. Links
+        // that prefetch on hover fire this event too without navigating anywhere.
+        if (!guarded() || method !== 'get' || prefetch) {
             return;
         }
 

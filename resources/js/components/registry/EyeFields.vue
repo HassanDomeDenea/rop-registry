@@ -2,7 +2,6 @@
 import { Sparkles } from '@lucide/vue';
 import { computed } from 'vue';
 import FormField from '@/components/registry/FormField.vue';
-import NativeSelect from '@/components/registry/NativeSelect.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import TextInput from '@/components/registry/TextInput.vue';
@@ -36,11 +35,43 @@ const suggestedType = computed(() =>
     ),
 );
 
-const zoneOptions = computed(() =>
-    englishOptions('zone').filter(
-        (option) => option.value !== 'not_applicable',
-    ),
-);
+/**
+ * Zone and stage as buttons with the short notation of the examination form; the full
+ * name shows on hover. "Not applicable" is left out for the zone, as before.
+ */
+const shortLabels: Record<'zone' | 'stage', Record<string, string>> = {
+    zone: {
+        zone_1: 'I',
+        posterior_zone_2: 'Post. II',
+        zone_2: 'II',
+        zone_3: 'III',
+    },
+    stage: {
+        stage_0: '0',
+        stage_1: '1',
+        stage_2: '2',
+        stage_3: '3',
+        stage_4a: '4A',
+        stage_4b: '4B',
+        stage_5: '5',
+        not_applicable: 'N/A',
+    },
+};
+
+function shortOptions(name: 'zone' | 'stage') {
+    return englishOptions(name)
+        .filter(
+            (option) => name !== 'zone' || option.value !== 'not_applicable',
+        )
+        .map((option) => ({
+            value: option.value,
+            label: shortLabels[name][option.value] ?? option.label,
+            title: option.label,
+        }));
+}
+
+const zoneOptions = computed(() => shortOptions('zone'));
+const stageOptions = computed(() => shortOptions('stage'));
 
 const yesNo = computed(() => [
     { value: 'yes', label: 'Yes' },
@@ -84,22 +115,19 @@ const aggressive = computed({
             />
         </FormField>
 
-        <div class="grid grid-cols-2 gap-4">
-            <FormField label="Zone" :error="errors[key('zone')]">
-                <NativeSelect
-                    v-model="form[key('zone')]"
-                    :options="zoneOptions"
-                    placeholder="Not recorded"
-                />
-            </FormField>
-            <FormField label="Stage" :error="errors[key('stage')]">
-                <NativeSelect
-                    v-model="form[key('stage')]"
-                    :options="englishOptions('stage')"
-                    placeholder="Not recorded"
-                />
-            </FormField>
-        </div>
+        <FormField label="Zone" :error="errors[key('zone')]">
+            <SegmentedControl
+                v-model="form[key('zone')]"
+                :options="zoneOptions"
+            />
+        </FormField>
+
+        <FormField label="Stage" :error="errors[key('stage')]">
+            <SegmentedControl
+                v-model="form[key('stage')]"
+                :options="stageOptions"
+            />
+        </FormField>
 
         <div class="grid grid-cols-2 gap-4">
             <FormField label="A-ROP (aggressive)" :error="errors[key('a_rop')]">
