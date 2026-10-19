@@ -4,7 +4,14 @@ import { useI18n } from '@/composables/useI18n';
 import type { Treatment } from '@/types';
 
 /** An injection or laser session in the timeline of a patient. */
-defineProps<{ treatment: Treatment }>();
+withDefaults(
+    defineProps<{
+        treatment: Treatment;
+        /** Whether to show where the session was found in the legacy records. */
+        showSourceReference?: boolean;
+    }>(),
+    { showSourceReference: true },
+);
 
 const { t, enumLabel, formatDate, formatWeeks } = useI18n();
 </script>
@@ -61,7 +68,7 @@ const { t, enumLabel, formatDate, formatWeeks } = useI18n();
                     {{ treatment.notes }}
                 </p>
                 <p
-                    v-if="treatment.source_reference"
+                    v-if="showSourceReference && treatment.source_reference"
                     class="text-xs text-muted-foreground"
                     dir="auto"
                 >

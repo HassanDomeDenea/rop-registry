@@ -442,7 +442,14 @@ function updateStatus(status: unknown) {
                         :attachments-count="attachmentsOf(entry.visit)"
                         @delete="deletingVisit = $event"
                     />
-                    <TreatmentCard v-else :treatment="entry.treatment">
+                    <TreatmentCard
+                        v-else
+                        :treatment="entry.treatment"
+                        :show-source-reference="
+                            !patient.source_notes_reviewed_at ||
+                            showReviewedSourceNotes
+                        "
+                    >
                         <template #actions>
                             <Button
                                 variant="ghost"

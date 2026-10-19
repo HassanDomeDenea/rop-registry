@@ -239,7 +239,13 @@ function attachmentsOf(visit: Visit) {
                         :highlighted="entry.visit.id === currentVisitId"
                         readonly
                     />
-                    <TreatmentCard v-else :treatment="entry.treatment" />
+                    <TreatmentCard
+                        v-else
+                        :treatment="entry.treatment"
+                        :show-source-reference="
+                            !patient.source_notes_reviewed_at
+                        "
+                    />
                 </template>
                 <p
                     v-if="latestFirst.length === 0"
