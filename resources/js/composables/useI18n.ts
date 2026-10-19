@@ -41,10 +41,11 @@ function createFormatters(t: Translate, intlLocale: () => string) {
             return fallback;
         }
 
-        return t(':weeks w :days d', {
-            weeks: Math.floor(days / 7),
-            days: days % 7,
-        });
+        const weeks = Math.floor(days / 7);
+
+        return days % 7
+            ? t(':weeks w :days d', { weeks, days: days % 7 })
+            : t(':weeks w', { weeks });
     }
 
     function formatGestationalAge(
@@ -204,6 +205,16 @@ export function useI18n() {
             : t(':count days ago', { count: Math.abs(days) });
     }
 
+    /**
+     * Keep a piece of text in its own direction inside a sentence, so that a Latin name such
+     * as "PMA" or "O₂" does not pull the number after it into a left-to-right run.
+     */
+    function isolate(text: string, dir: 'ltr' | 'line' = 'line') {
+        const start = dir === 'ltr' || !isRtl.value ? '⁦' : '⁧';
+
+        return `${start}${text}⁩`;
+    }
+
     /** The type of respiratory support with its days, and the separate O₂ and CPAP days when recorded. */
     function formatRespiratorySupport(
         patient: {
@@ -214,28 +225,20 @@ export function useI18n() {
         },
         fallback = '—',
     ) {
-        return (
-            [
-                enumLabel(
-                    'respiratory_support',
-                    patient.respiratory_support,
-                    '',
-                ),
-                patient.support_days !== null
-                    ? t(':count days', { count: patient.support_days })
-                    : null,
-                patient.o2_days !== null
-                    ? `O₂ ${t(':count days', { count: patient.o2_days })}`
-                    : null,
-                patient.cpap_days !== null
-                    ? `CPAP ${t(':count days', { count: patient.cpap_days })}`
-                    : null,
-            ]
-                .filter(Boolean)
-                .join(' · ') || fallback
-        );
-    }
+        const days = (count: number, name?: string) =>
+            `${name ? `${isolate(name, 'ltr')} ` : ''}${t(':count days', { count })}`;
 
+        const parts = [
+            enumLabel('respiratory_support', patient.respiratory_support, ''),
+            patient.support_days !== null ? days(patient.support_days) : '',
+            patient.o2_days !== null ? days(patient.o2_days, 'O₂') : '',
+            patient.cpap_days !== null ? days(patient.cpap_days, 'CPAP') : '',
+        ].filter(Boolean);
+
+        return parts.length
+            ? parts.map((part) => isolate(part)).join(' · ')
+            : fallback;
+    }
     function formatBytes(bytes: number) {
         if (bytes < 1024) {
             return `${bytes} B`;
