@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * A single type of support keeps its days in `support_days`; only Oâ‚‚ + CPAP uses the
+     * A single type of support keeps its days in `support_days`; only O₂ + CPAP uses the
      * separate `o2_days` and `cpap_days`, which are left as they are.
      *
      * The imported records used either `support_days` or the per-type days, never both, so

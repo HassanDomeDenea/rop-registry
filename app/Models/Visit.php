@@ -28,8 +28,6 @@ use Illuminate\Support\Carbon;
  * @property VisitKind $kind
  * @property Carbon|null $visit_date
  * @property string|null $examiner
- * @property string|null $right_dilatation
- * @property string|null $right_lens
  * @property PlusDisease|null $right_plus
  * @property Zone|null $right_zone
  * @property Stage|null $right_stage
@@ -37,8 +35,6 @@ use Illuminate\Support\Carbon;
  * @property RopType|null $right_rop_type
  * @property RopStatus|null $right_rop_status
  * @property string|null $right_notes
- * @property string|null $left_dilatation
- * @property string|null $left_lens
  * @property PlusDisease|null $left_plus
  * @property Zone|null $left_zone
  * @property Stage|null $left_stage
@@ -72,8 +68,8 @@ class Visit extends Model
      */
     protected $fillable = [
         'kind', 'visit_date', 'examiner',
-        'right_dilatation', 'right_lens', 'right_plus', 'right_zone', 'right_stage', 'right_a_rop', 'right_rop_type', 'right_rop_status', 'right_notes',
-        'left_dilatation', 'left_lens', 'left_plus', 'left_zone', 'left_stage', 'left_a_rop', 'left_rop_type', 'left_rop_status', 'left_notes',
+        'right_plus', 'right_zone', 'right_stage', 'right_a_rop', 'right_rop_type', 'right_rop_status', 'right_notes',
+        'left_plus', 'left_zone', 'left_stage', 'left_a_rop', 'left_rop_type', 'left_rop_status', 'left_notes',
         'assessment', 'management_plan', 'management_notes', 'next_visit_date', 'fee', 'notes', 'source_reference',
     ];
 

@@ -53,15 +53,7 @@ const type = computed(
     () => value('rop_type') ?? props.visit[`${props.eye}_suggested_type`],
 );
 
-const details = computed(() =>
-    [
-        value('dilatation')
-            ? `${t('Dilatation')}: ${value('dilatation')}`
-            : null,
-        value('lens') ? `${t('Lens')}: ${value('lens')}` : null,
-        value('notes'),
-    ].filter(Boolean),
-);
+const details = computed(() => [value('notes')].filter(Boolean));
 
 const isEmpty = computed(
     () =>

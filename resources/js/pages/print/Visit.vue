@@ -47,8 +47,6 @@ function finding(eye: Eye, field: string, enumName?: EnumName) {
 
 // The examination is written in English, like the paper form.
 const rows: { label: string; field: string; enum?: EnumName }[] = [
-    { label: 'Dilatation', field: 'dilatation' },
-    { label: 'Lens', field: 'lens' },
     { label: 'Plus disease', field: 'plus', enum: 'plus_disease' },
     { label: 'Zone', field: 'zone', enum: 'zone' },
     { label: 'Stage', field: 'stage', enum: 'stage' },

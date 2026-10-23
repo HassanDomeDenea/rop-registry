@@ -14,6 +14,7 @@ use App\Models\Treatment;
 use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -47,6 +48,22 @@ class VisitTest extends TestCase
         $this->assertSame(Stage::StageTwo, $patient->highest_stage);
         $this->assertSame('2026-06-20', $patient->last_visit_date->format('Y-m-d'));
         $this->assertFalse($patient->type_one);
+    }
+
+    public function test_removed_dilatation_and_lens_are_kept_in_the_notes_of_the_eye()
+    {
+        $migration = require database_path('migrations/2026_10_20_143241_remove_dilatation_and_lens_from_visits.php');
+        $migration->down();
+
+        $visit = Visit::factory()->create(['right_notes' => 'Hazy view', 'left_notes' => null]);
+        $untouched = Visit::factory()->create(['right_notes' => null, 'left_notes' => null]);
+        DB::table('visits')->where('id', $visit->id)->update(['right_dilatation' => 'Poor', 'right_lens' => 'TVL', 'left_lens' => 'Clear']);
+
+        $migration->up();
+
+        $this->assertSame("Hazy view\nDilatation: Poor\nLens: TVL", $visit->refresh()->right_notes);
+        $this->assertSame('Lens: Clear', $visit->left_notes);
+        $this->assertNull($untouched->refresh()->right_notes);
     }
 
     public function test_next_visit_cannot_precede_the_visit()

@@ -192,7 +192,7 @@ class RegistryWorkbook
         $this->sheet($this->text('Visits'), freezeRow: 2, freezeColumn: 'C');
 
         $eye = fn (string $side): array => array_map(fn (string $column): string => $side.' · '.$column, [
-            $this->text('Dilatation'), $this->text('Lens'), $this->text('Plus disease'), $this->text('Zone'), $this->text('Stage'),
+            $this->text('Plus disease'), $this->text('Zone'), $this->text('Stage'),
             $this->text('A-ROP (aggressive)'), $this->text('Type of ROP'), $this->text('ROP status'), $this->text('Notes'),
         ]);
 
@@ -234,8 +234,6 @@ class RegistryWorkbook
         $aggressive = $isRight ? $visit->right_a_rop : $visit->left_a_rop;
 
         return [
-            $isRight ? $visit->right_dilatation : $visit->left_dilatation,
-            $isRight ? $visit->right_lens : $visit->left_lens,
             ($isRight ? $visit->right_plus : $visit->left_plus)?->label(),
             ($isRight ? $visit->right_zone : $visit->left_zone)?->label(),
             ($isRight ? $visit->right_stage : $visit->left_stage)?->label(),

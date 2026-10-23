@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import FormField from '@/components/registry/FormField.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
 import TextArea from '@/components/registry/TextArea.vue';
-import TextInput from '@/components/registry/TextInput.vue';
 import ZoneDiagram from '@/components/registry/ZoneDiagram.vue';
 import { useI18n } from '@/composables/useI18n';
 import { classifyRop } from '@/lib/rop';
@@ -12,7 +11,7 @@ import type { Eye } from '@/types';
 
 /**
  * The findings of one eye, in the order of the paper examination form:
- * dilatation, lens, plus disease, zone, stage, A-ROP, type of ROP.
+ * plus disease, zone, stage, A-ROP, type of ROP.
  */
 const props = defineProps<{
     eye: Eye;
@@ -97,15 +96,6 @@ const aggressive = computed({
     <div class="space-y-4" dir="ltr" lang="en">
         <div class="flex justify-center">
             <ZoneDiagram v-model="form[key('zone')]" :eye="eye" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <FormField label="Dilatation" :error="errors[key('dilatation')]">
-                <TextInput v-model="form[key('dilatation')]" dir="auto" />
-            </FormField>
-            <FormField label="Lens" :error="errors[key('lens')]">
-                <TextInput v-model="form[key('lens')]" dir="auto" />
-            </FormField>
         </div>
 
         <FormField label="Plus disease" :error="errors[key('plus')]">

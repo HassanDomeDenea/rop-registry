@@ -88,8 +88,6 @@ export type Eye = 'right' | 'left';
 export type EyeFindings = {
     [
         K in
-            | 'dilatation'
-            | 'lens'
             | 'plus'
             | 'zone'
             | 'stage'

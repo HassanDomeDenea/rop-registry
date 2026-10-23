@@ -48,8 +48,6 @@ class VisitRequest extends FormRequest
 
         foreach (Visit::EYES as $eye) {
             $rules += [
-                "{$eye}_dilatation" => ['nullable', 'string', 'max:100'],
-                "{$eye}_lens" => ['nullable', 'string', 'max:100'],
                 "{$eye}_plus" => ['nullable', Rule::enum(PlusDisease::class)],
                 "{$eye}_zone" => ['nullable', Rule::enum(Zone::class)],
                 "{$eye}_stage" => ['nullable', Rule::enum(Stage::class)],

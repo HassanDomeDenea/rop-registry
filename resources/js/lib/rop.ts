@@ -42,8 +42,6 @@ export function classifyRop(
 }
 
 export const EYE_FIELDS = [
-    'dilatation',
-    'lens',
     'plus',
     'zone',
     'stage',
