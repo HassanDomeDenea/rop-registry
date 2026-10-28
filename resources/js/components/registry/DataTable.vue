@@ -1,9 +1,13 @@
 <script setup lang="ts" generic="T extends { id: number | string }">
 import { ArrowDown, ArrowUp, ChevronsUpDown } from '@lucide/vue';
+import { computed } from 'vue';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useI18n } from '@/composables/useI18n';
 
 /**
  * A generic, presentational table. Every cell can be customised through a
  * `cell-{key}` slot; sorting is delegated to the parent through the `sort` event.
+ * With `selectable`, a leading checkbox column fills the `selected` ids.
  */
 export type Column = {
     key: string;
@@ -22,7 +26,40 @@ const props = defineProps<{
     clickable?: boolean;
     rowClass?: (row: T) => string | undefined;
     dense?: boolean;
+    selectable?: boolean;
 }>();
+
+const selected = defineModel<T['id'][]>('selected', { default: () => [] });
+
+const { t } = useI18n();
+
+const allSelected = computed<boolean | 'indeterminate'>(() => {
+    const count = props.rows.filter((row) =>
+        selected.value.includes(row.id),
+    ).length;
+
+    if (count === 0) {
+        return false;
+    }
+
+    return count === props.rows.length ? true : 'indeterminate';
+});
+
+function selectAll(checked: boolean | 'indeterminate') {
+    const ids = props.rows.map((row) => row.id);
+
+    selected.value =
+        checked === true
+            ? [...new Set([...selected.value, ...ids])]
+            : selected.value.filter((id) => !ids.includes(id));
+}
+
+function select(row: T, checked: boolean | 'indeterminate') {
+    selected.value =
+        checked === true
+            ? [...selected.value, row.id]
+            : selected.value.filter((id) => id !== row.id);
+}
 
 const emit = defineEmits<{
     sort: [key: string, direction: 'asc' | 'desc'];
@@ -69,6 +106,19 @@ function onRowClick(row: T, event: MouseEvent) {
         <table data-slot="data-table" class="w-full border-collapse text-sm">
             <thead>
                 <tr class="border-b bg-muted/40">
+                    <th
+                        v-if="selectable"
+                        scope="col"
+                        class="no-print w-10 ps-5 pe-1"
+                    >
+                        <Checkbox
+                            :model-value="allSelected"
+                            :aria-label="t('Select all on this page')"
+                            :disabled="rows.length === 0"
+                            class="align-middle"
+                            @update:model-value="selectAll"
+                        />
+                    </th>
                     <th
                         v-for="column in columns"
                         :key="column.key"
@@ -127,6 +177,14 @@ function onRowClick(row: T, event: MouseEvent) {
                     ]"
                     @click="onRowClick(row, $event)"
                 >
+                    <td v-if="selectable" class="no-print w-10 ps-5 pe-1">
+                        <Checkbox
+                            :model-value="selected.includes(row.id)"
+                            :aria-label="t('Select')"
+                            class="align-middle"
+                            @update:model-value="select(row, $event)"
+                        />
+                    </td>
                     <td
                         v-for="column in columns"
                         :key="column.key"

@@ -41,6 +41,8 @@ class PatientController extends Controller
         'last_visit_date' => 'last_visit_date is null',
         'next_appointment_date' => 'next_appointment_date is null',
         'status' => 'status is null',
+        'referring_doctor' => 'referring_doctor is null',
+        'referral_date' => 'referral_date is null',
         'created_at' => 'created_at is null',
     ];
 
@@ -61,6 +63,8 @@ class PatientController extends Controller
             'patients' => $patients,
             'filters' => $filters,
             'findingOptions' => Suggestion::eyeFindings(),
+            'doctorFilterOptions' => Patient::referringDoctorCounts(),
+            'doctorOptions' => Suggestion::labels(SuggestionList::ReferringDoctor),
             'unverifiedCount' => Patient::query()->where('unverified', true)->count(),
         ]);
     }
@@ -223,6 +227,33 @@ class PatientController extends Controller
         $reviewed = $request->validate(['reviewed' => ['required', 'boolean']])['reviewed'];
 
         $patient->update(['source_notes_reviewed_at' => $reviewed ? now() : null]);
+
+        return back();
+    }
+
+    /**
+     * Set the same referring doctor on the selected patients, or clear it.
+     */
+    public function referringDoctor(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'max:500'],
+            'ids.*' => ['integer', 'distinct', Rule::exists('patients', 'id')],
+            'referring_doctor' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $changed = DB::transaction(fn (): int => Patient::assignReferringDoctor(
+            Patient::query()->withTrashed()->whereKey($validated['ids']),
+            $validated['referring_doctor'] ?? null,
+        ));
+
+        Suggestion::remember(SuggestionList::ReferringDoctor, $validated['referring_doctor'] ?? null);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(
+            ':count patient updated.|:count patients updated.',
+            $changed,
+            ['count' => $changed],
+        )]);
 
         return back();
     }
@@ -392,7 +423,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
+     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, doctor: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
      */
     protected function filters(Request $request): array
     {
@@ -406,6 +437,7 @@ class PatientController extends Controller
             'rop' => $request->string('rop')->toString(),
             'treatment' => $request->string('treatment')->toString(),
             'finding' => $request->integer('finding') ?: null,
+            'doctor' => $request->string('doctor')->toString(),
             'review' => $request->boolean('review'),
             'unverified' => $request->boolean('unverified'),
             'trashed' => $request->boolean('trashed'),
@@ -416,7 +448,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
+     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, doctor: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
      * @return Builder<Patient>
      */
     protected function query(array $filters): Builder
@@ -435,6 +467,8 @@ class PatientController extends Controller
             ->when($filters['treatment'] === 'pending', fn (Builder $query) => $query->where('treatment_pending', true))
             ->when($filters['treatment'] === 'none', fn (Builder $query) => $query->where('had_injection', false)->where('had_laser', false))
             ->when($filters['finding'] !== null, fn (Builder $query) => $query->whereHas('visits', fn (Builder $query) => $query->withFinding($filters['finding'])))
+            ->when($filters['doctor'] === Patient::NO_DOCTOR, fn (Builder $query) => $query->whereNull('referring_doctor'))
+            ->when(! in_array($filters['doctor'], ['', Patient::NO_DOCTOR], true), fn (Builder $query) => $query->where('referring_doctor', $filters['doctor']))
             ->when($filters['unverified'], fn (Builder $query) => $query->where('unverified', true))
             ->when($filters['review'], fn (Builder $query) => $query->whereHas('reviewItems', fn (Builder $query) => $query->whereNull('resolved_at')))
             ->orderByRaw(self::NULLS_LAST[$filters['sort']])

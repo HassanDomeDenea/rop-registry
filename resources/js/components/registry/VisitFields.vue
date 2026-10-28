@@ -382,7 +382,11 @@ function markBothNormal() {
                                     :aria-pressed="form.fee === fee"
                                     @click="setField('fee', fee)"
                                 >
-                                    {{ formatNumber(fee) }}
+                                    {{
+                                        fee === 0
+                                            ? t('Free (0)')
+                                            : formatNumber(fee)
+                                    }}
                                 </button>
                             </div>
                         </FormField>

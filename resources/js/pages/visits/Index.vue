@@ -46,7 +46,12 @@ type Filters = {
     per_page: number;
 };
 
-const props = defineProps<{ visits: Paginated<Row>; filters: Filters }>();
+const props = defineProps<{
+    visits: Paginated<Row>;
+    filters: Filters;
+    /** The fees of all the visits matching the filters, not only this page. */
+    fees: { total: number; recorded: number };
+}>();
 
 const {
     t,
@@ -85,6 +90,13 @@ const columns = computed<Column[]>(() => [
         label: t('Next appointment'),
         sortable: true,
         class: 'w-36',
+    },
+    {
+        key: 'fee',
+        label: t('Fee (IQD)'),
+        sortable: true,
+        align: 'end',
+        class: 'whitespace-nowrap tabular-nums',
     },
     { key: 'actions', label: '', align: 'end' },
 ]);
@@ -160,7 +172,13 @@ function openPatient(row: Row) {
         :description="
             t(':count visits of all patients', {
                 count: formatNumber(visits.total),
-            })
+            }) +
+            (fees.recorded
+                ? ` · ${t('Fees: :total IQD from :count visits', {
+                      total: formatNumber(fees.total),
+                      count: formatNumber(fees.recorded),
+                  })}`
+                : '')
         "
     />
 
@@ -318,6 +336,14 @@ function openPatient(row: Row) {
                     </p>
                 </template>
                 <span v-else class="text-muted-foreground">—</span>
+            </template>
+
+            <template #cell-fee="{ row }">
+                <span v-if="row.fee === null" class="text-muted-foreground">
+                    —
+                </span>
+                <template v-else-if="row.fee === 0">{{ t('Free') }}</template>
+                <template v-else>{{ formatNumber(row.fee) }}</template>
             </template>
 
             <template #cell-actions="{ row }">

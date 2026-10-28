@@ -47,9 +47,15 @@ class VisitListController extends Controller
                 'patient' => $visit->patient->only(['id', 'name', 'file_number', 'ga_weeks', 'ga_days', 'birth_weight_g', 'unverified']),
             ]);
 
+        $fees = $this->query($filters)->reorder()->whereNotNull('fee');
+
         return Inertia::render('visits/Index', [
             'visits' => $visits,
             'filters' => $filters,
+            'fees' => [
+                'total' => (int) (clone $fees)->sum('fee'),
+                'recorded' => $fees->count(),
+            ],
         ]);
     }
 

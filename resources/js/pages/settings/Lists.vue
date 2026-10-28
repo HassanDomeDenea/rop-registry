@@ -12,6 +12,7 @@ import {
 } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import ConfirmDialog from '@/components/registry/ConfirmDialog.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import TextInput from '@/components/registry/TextInput.vue';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,8 @@ type Suggestion = {
     hidden: boolean;
     /** For eye findings: the visits that ticked the entry, which keep it when it is removed. */
     visits_count: number | null;
+    /** For referring doctors: the patients referred by them. */
+    patients_count: number | null;
 };
 
 const props = defineProps<{ suggestions: Suggestion[] }>();
@@ -34,7 +37,7 @@ const { t, enumOptions } = useI18n();
 const descriptions: Record<string, string> = {
     illness: 'Shown as a checklist on the patient form',
     referring_doctor:
-        'Offered while typing the referring doctor. A new name typed on a patient is added here automatically.',
+        'Offered while typing the referring doctor. A new name typed on a patient is added here automatically. Renaming a doctor renames them on every patient they referred; renaming one to the name of another merges the two.',
     eye_finding:
         'Ticked for each eye on the examination form and counted in the statistics. Renaming an entry renames it on every visit; an entry already recorded on visits is hidden instead of deleted.',
 };
@@ -42,6 +45,12 @@ const descriptions: Record<string, string> = {
 const drafts = reactive<Record<string, string | null>>({});
 const errors = reactive<Record<string, string | undefined>>({});
 const editing = ref<{ id: number; label: string | null } | null>(null);
+/** A rename of a referring doctor to the name of another entry, waiting to be confirmed. */
+const merging = ref<{
+    list: string;
+    from: Suggestion;
+    into: Suggestion;
+} | null>(null);
 
 const entries = (list: string) =>
     props.suggestions.filter((suggestion) => suggestion.list === list);
@@ -63,10 +72,25 @@ function add(list: string) {
     );
 }
 
-function save(list: string) {
+function save(list: string, confirmed = false) {
     if (!editing.value) {
         return;
     }
+
+    const id = editing.value.id;
+    const label = (editing.value.label ?? '').trim();
+    const into = entries(list).find(
+        (suggestion) => suggestion.id !== id && suggestion.label === label,
+    );
+    const from = entries(list).find((suggestion) => suggestion.id === id);
+
+    if (list === 'referring_doctor' && into && from && !confirmed) {
+        merging.value = { list, from, into };
+
+        return;
+    }
+
+    merging.value = null;
 
     router.put(
         listRoutes.update.url(editing.value.id),
@@ -143,6 +167,16 @@ function remove(suggestion: Suggestion) {
                                 class="rounded bg-muted px-1.5 py-0.5 text-xs"
                             >
                                 {{ t('Hidden from the form') }}
+                            </span>
+                            <span
+                                v-if="suggestion.patients_count !== null"
+                                class="text-xs text-muted-foreground"
+                            >
+                                {{
+                                    t(':count patients', {
+                                        count: suggestion.patients_count,
+                                    })
+                                }}
                             </span>
                             <span
                                 v-if="suggestion.visits_count"
@@ -259,8 +293,29 @@ function remove(suggestion: Suggestion) {
     <p class="text-xs text-muted-foreground">
         {{
             t(
-                'Illnesses and referring doctors: renaming or deleting an entry changes what is offered from now on. Records already saved keep their text.',
+                'Illnesses: renaming or deleting an entry changes what is offered from now on; records already saved keep their text. Deleting a referring doctor only removes the suggestion; their patients keep the name.',
             )
         }}
     </p>
+
+    <ConfirmDialog
+        :open="merging !== null"
+        :title="t('Merge the two doctors?')"
+        :description="
+            merging
+                ? t(
+                      ':from will be renamed to :into on its :count patients, and removed from the list.',
+                      {
+                          from: merging.from.label,
+                          into: merging.into.label,
+                          count: merging.from.patients_count ?? 0,
+                      },
+                  )
+                : undefined
+        "
+        :confirm-label="t('Merge')"
+        :destructive="false"
+        @update:open="merging = $event ? merging : null"
+        @confirm="merging && save(merging.list, true)"
+    />
 </template>

@@ -307,7 +307,7 @@ class RegistryWorkbook
             $this->writer->addRow($this->row([$row['label'], $row['n'], $row['missing'], $row['mean'], $row['median'], $row['min'], $row['max']]));
         }
 
-        foreach ($statistics['crosstabs'] as $table) {
+        foreach ([...$statistics['crosstabs'], $statistics['doctors']] as $table) {
             $this->writer->addRow(Row::fromValues([]));
             $this->writer->addRow(Row::fromValuesWithStyle([
                 $table['title'], $this->text('Patients'), $this->text('Known ROP status'), $this->text('ROP'),
@@ -344,6 +344,27 @@ class RegistryWorkbook
 
         foreach ($statistics['monthly'] as $month) {
             $this->writer->addRow($this->row([$month['month'], $month['new_patients'], $month['examinations'], $month['treatments']]));
+        }
+
+        $fees = $statistics['fees'];
+
+        $this->writer->addRow(Row::fromValues([]));
+        $this->writer->addRow(Row::fromValuesWithStyle([$this->text('Fee (IQD)'), $this->text('Visits'), $this->text('Total (IQD)')], $this->heading));
+
+        foreach ($fees['amounts'] as $amount) {
+            $this->writer->addRow($this->row([$amount['fee'], $amount['visits'], $amount['total']]));
+        }
+
+        $this->writer->addRow($this->row([$this->text('Total'), $fees['recorded'], $fees['total']]));
+        $this->writer->addRow(Row::fromValuesWithStyle([
+            $this->text(':count visits without a fee recorded', ['count' => $fees['visits'] - $fees['recorded']]),
+        ], $this->muted));
+
+        $this->writer->addRow(Row::fromValues([]));
+        $this->writer->addRow(Row::fromValuesWithStyle([$this->text('Month'), $this->text('Visits with a fee'), $this->text('Total (IQD)')], $this->heading));
+
+        foreach ($fees['months'] as $month) {
+            $this->writer->addRow($this->row([$month['month'] ?? $this->text('No date'), $month['visits'], $month['total']]));
         }
     }
 

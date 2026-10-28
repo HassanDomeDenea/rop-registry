@@ -145,7 +145,9 @@ const routeArgs = computed(() => ({
 
             <div
                 v-if="
-                    visit.management_plan || visit.next_visit_date || visit.fee
+                    visit.management_plan ||
+                    visit.next_visit_date ||
+                    visit.fee !== null
                 "
                 class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm"
             >
@@ -163,10 +165,17 @@ const routeArgs = computed(() => ({
                     </span>
                 </span>
                 <span
-                    v-if="visit.fee"
+                    v-if="visit.fee !== null"
                     class="text-muted-foreground tabular-nums"
                 >
-                    {{ t('Fee') }}: {{ formatNumber(visit.fee) }}
+                    {{ t('Fee') }}:
+                    <span class="font-medium text-foreground">
+                        {{
+                            visit.fee === 0
+                                ? t('Free')
+                                : formatNumber(visit.fee)
+                        }}
+                    </span>
                 </span>
             </div>
 

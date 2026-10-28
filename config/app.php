@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated addresses whose X-Forwarded-* headers are believed. A
+    | Cloudflare Tunnel on this computer reaches Herd from 127.0.0.1, so
+    | trusting it makes links use the public https address. Leave unset
+    | on hosts that are not behind such a tunnel.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

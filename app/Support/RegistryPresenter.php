@@ -27,7 +27,7 @@ class RegistryPresenter
             ...$patient->only([
                 'id', 'file_number', 'name', 'sex', 'birth_weight_g', 'ga_weeks', 'ga_days', 'multiplicity',
                 'status', 'unverified', 'phone', 'exams_count', 'any_rop', 'highest_stage', 'any_plus', 'type_one',
-                'had_injection', 'had_laser', 'treatment_pending',
+                'had_injection', 'had_laser', 'treatment_pending', 'referring_doctor',
             ]),
             'dob' => $patient->dob?->format('Y-m-d'),
             'referral_date' => $patient->referral_date?->format('Y-m-d'),
@@ -56,7 +56,7 @@ class RegistryPresenter
         return [
             ...self::patientRow($patient),
             ...$patient->only([
-                'mother_name', 'delivery_mode', 'referring_doctor', 'nicu_days', 'respiratory_support', 'support_days',
+                'mother_name', 'delivery_mode', 'nicu_days', 'respiratory_support', 'support_days',
                 'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone_alt', 'address', 'notes',
             ]),
             'source_notes' => self::showsSourceRecords() ? $patient->source_notes : null,

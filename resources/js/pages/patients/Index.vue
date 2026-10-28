@@ -4,18 +4,20 @@ import {
     ChevronDown,
     CircleHelp,
     ClipboardCheck,
+    Columns3,
     Download,
     FileSpreadsheet,
     FileText,
     Printer,
     RotateCcw,
     Search,
+    Stethoscope,
     UserPlus,
     Users,
     X,
 } from '@lucide/vue';
-import { useDebounceFn } from '@vueuse/core';
-import { computed, reactive } from 'vue';
+import { useDebounceFn, useStorage } from '@vueuse/core';
+import { computed, reactive, ref } from 'vue';
 import DataTable from '@/components/registry/DataTable.vue';
 import type { Column } from '@/components/registry/DataTable.vue';
 import EmptyState from '@/components/registry/EmptyState.vue';
@@ -25,13 +27,28 @@ import Pagination from '@/components/registry/Pagination.vue';
 import PatientFlags from '@/components/registry/PatientFlags.vue';
 import Pill from '@/components/registry/Pill.vue';
 import type { PillTone } from '@/components/registry/Pill.vue';
+import SuggestInput from '@/components/registry/SuggestInput.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
 import patientRoutes from '@/routes/patients';
 import type { FindingOption, Paginated, PatientRow } from '@/types';
@@ -44,6 +61,8 @@ type Filters = {
     treatment: string;
     /** Patients with this eye finding ticked at one visit or more. */
     finding: number | null;
+    /** A referring doctor, or "none" for the patients without one. */
+    doctor: string;
     review: boolean;
     unverified: boolean;
     trashed: boolean;
@@ -56,6 +75,9 @@ const props = defineProps<{
     patients: Paginated<PatientRow>;
     filters: Filters;
     findingOptions: FindingOption[];
+    /** The referring doctors on record, with the number of patients of each. */
+    doctorFilterOptions: { label: string; patients: number }[];
+    doctorOptions: string[];
     unverifiedCount: number;
 }>();
 
@@ -71,7 +93,7 @@ const {
 
 const state = reactive<Filters>({ ...props.filters });
 
-const columns = computed<Column[]>(() => [
+const allColumns = computed<Column[]>(() => [
     {
         key: 'file_number',
         label: t('File no.'),
@@ -98,6 +120,13 @@ const columns = computed<Column[]>(() => [
         align: 'end',
         class: 'tabular-nums',
     },
+    { key: 'referring_doctor', label: t('Referring doctor'), sortable: true },
+    {
+        key: 'referral_date',
+        label: t('Referral date'),
+        sortable: true,
+        class: 'whitespace-nowrap tabular-nums',
+    },
     { key: 'rop', label: t('ROP') },
     {
         key: 'exams_count',
@@ -121,6 +150,31 @@ const columns = computed<Column[]>(() => [
     { key: 'status', label: t('Status'), sortable: true },
     { key: 'actions', label: '', align: 'end', class: 'w-10' },
 ]);
+
+/** The patient name and the actions are always shown. */
+const fixedColumns = ['name', 'actions'];
+
+/** The columns switched off, remembered in this browser. */
+const hiddenColumns = useStorage<string[]>('registry.patient-columns', [
+    'referral_date',
+]);
+
+const optionalColumns = computed(() =>
+    allColumns.value.filter((column) => !fixedColumns.includes(column.key)),
+);
+
+const columns = computed(() =>
+    allColumns.value.filter(
+        (column) => !hiddenColumns.value.includes(column.key),
+    ),
+);
+
+function toggleColumn(key: string, shown: boolean | 'indeterminate') {
+    hiddenColumns.value =
+        shown === true
+            ? hiddenColumns.value.filter((hidden) => hidden !== key)
+            : [...hiddenColumns.value, key];
+}
 
 const statusTones: Record<string, PillTone> = {
     active: 'info',
@@ -151,9 +205,18 @@ const findingSelectOptions = computed(() =>
     })),
 );
 
+const doctorSelectOptions = computed(() => [
+    { value: 'none', label: t('No referring doctor') },
+    ...props.doctorFilterOptions.map((doctor) => ({
+        value: doctor.label,
+        label: `${doctor.label} (${formatNumber(doctor.patients)})`,
+    })),
+]);
+
 const hasFilters = computed(
     () =>
         state.search !== '' ||
+        state.doctor !== '' ||
         state.status !== '' ||
         state.sex !== '' ||
         state.rop !== '' ||
@@ -172,6 +235,7 @@ function query(): Record<string, string | number | boolean> {
         rop: '',
         treatment: '',
         finding: null,
+        doctor: '',
         review: false,
         unverified: false,
         trashed: false,
@@ -225,6 +289,7 @@ function reset() {
         rop: '',
         treatment: '',
         finding: null,
+        doctor: '',
         review: false,
         unverified: false,
     });
@@ -261,6 +326,40 @@ function rowClass(patient: PatientRow) {
 
 function printTable() {
     window.print();
+}
+
+/** The patients ticked for a bulk change; kept while moving between pages. */
+const selected = ref<number[]>([]);
+const doctorDialog = ref(false);
+const bulkDoctor = ref<string | number | null>(null);
+const bulkProcessing = ref(false);
+
+function openDoctorDialog() {
+    const doctors = new Set(
+        props.patients.data
+            .filter((patient) => selected.value.includes(patient.id))
+            .map((patient) => patient.referring_doctor),
+    );
+
+    // Start from the doctor the ticked patients share, if they share one.
+    bulkDoctor.value = doctors.size === 1 ? [...doctors][0] : null;
+    doctorDialog.value = true;
+}
+
+function applyDoctor() {
+    router.put(
+        patientRoutes.referringDoctor.url(),
+        { ids: selected.value, referring_doctor: bulkDoctor.value },
+        {
+            preserveScroll: true,
+            onStart: () => (bulkProcessing.value = true),
+            onFinish: () => (bulkProcessing.value = false),
+            onSuccess: () => {
+                doctorDialog.value = false;
+                selected.value = [];
+            },
+        },
+    );
 }
 </script>
 
@@ -393,6 +492,14 @@ function printTable() {
                 :placeholder="t('Any eye finding')"
                 @update:model-value="setFinding"
             />
+            <NativeSelect
+                class="w-52"
+                :model-value="state.doctor || null"
+                :options="doctorSelectOptions"
+                :placeholder="t('Any referring doctor')"
+                dir="auto"
+                @update:model-value="setFilter('doctor', $event as string)"
+            />
             <Button
                 :variant="state.review ? 'default' : 'outline'"
                 size="sm"
@@ -416,6 +523,51 @@ function printTable() {
                 <X />
                 {{ t('Clear') }}
             </Button>
+            <Popover>
+                <PopoverTrigger as-child>
+                    <Button variant="outline" size="sm" class="ms-auto h-9">
+                        <Columns3 />
+                        {{ t('Columns') }}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" class="w-56 p-2">
+                    <p
+                        class="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground"
+                    >
+                        {{ t('Columns shown') }}
+                    </p>
+                    <label
+                        v-for="column in optionalColumns"
+                        :key="column.key"
+                        class="flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
+                    >
+                        <Checkbox
+                            :model-value="!hiddenColumns.includes(column.key)"
+                            @update:model-value="
+                                toggleColumn(column.key, $event)
+                            "
+                        />
+                        {{ column.label }}
+                    </label>
+                </PopoverContent>
+            </Popover>
+        </div>
+
+        <div
+            v-if="selected.length && !state.trashed"
+            class="no-print flex flex-wrap items-center gap-2 border-b bg-muted/40 px-5 py-2 text-sm"
+        >
+            <span class="font-medium">
+                {{ t(':count selected', { count: selected.length }) }}
+            </span>
+            <Button variant="outline" size="sm" @click="openDoctorDialog">
+                <Stethoscope />
+                {{ t('Set referring doctor') }}
+            </Button>
+            <Button variant="ghost" size="sm" @click="selected = []">
+                <X />
+                {{ t('Clear selection') }}
+            </Button>
         </div>
 
         <Pagination :paginator="patients" top class="no-print" />
@@ -425,7 +577,9 @@ function printTable() {
             :rows="patients.data"
             :sort="state.sort"
             :direction="state.direction"
+            v-model:selected="selected"
             :row-class="rowClass"
+            :selectable="!state.trashed"
             clickable
             @sort="sortBy"
             @row-click="router.visit(patientRoutes.show.url($event.id))"
@@ -475,6 +629,15 @@ function printTable() {
             </template>
             <template #cell-birth_weight_g="{ row }">
                 {{ formatNumber(row.birth_weight_g) }}
+            </template>
+            <template #cell-referring_doctor="{ row }">
+                <bdi v-if="row.referring_doctor">
+                    {{ row.referring_doctor }}
+                </bdi>
+                <span v-else class="text-muted-foreground">—</span>
+            </template>
+            <template #cell-referral_date="{ row }">
+                {{ formatDate(row.referral_date) }}
             </template>
             <template #cell-rop="{ row }">
                 <PatientFlags :patient="row" show-rop />
@@ -558,4 +721,41 @@ function printTable() {
             </div>
         </div>
     </section>
+
+    <Dialog v-model:open="doctorDialog">
+        <DialogContent class="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>{{ t('Set referring doctor') }}</DialogTitle>
+                <DialogDescription>
+                    {{
+                        t(
+                            'For the :count selected patients. Leave it empty to clear the referring doctor.',
+                            { count: selected.length },
+                        )
+                    }}
+                </DialogDescription>
+            </DialogHeader>
+            <form id="bulk-doctor" @submit.prevent="applyDoctor">
+                <SuggestInput
+                    v-model="bulkDoctor"
+                    v-focus
+                    :options="doctorOptions"
+                    :placeholder="t('Referring doctor')"
+                    dir="auto"
+                />
+            </form>
+            <DialogFooter class="gap-2">
+                <Button variant="outline" @click="doctorDialog = false">
+                    {{ t('Cancel') }}
+                </Button>
+                <Button
+                    type="submit"
+                    form="bulk-doctor"
+                    :disabled="bulkProcessing"
+                >
+                    {{ t('Apply') }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

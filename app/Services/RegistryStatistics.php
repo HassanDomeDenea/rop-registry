@@ -19,6 +19,7 @@ use App\Models\Treatment;
 use App\Models\Visit;
 use BackedEnum;
 use Carbon\CarbonInterface;
+use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 
@@ -38,6 +39,9 @@ class RegistryStatistics
     protected const WEIGHT_GROUPS = [[0, 999, '< 1000'], [1000, 1499, '1000–1499'], [1500, 1999, '1500–1999'], [2000, 2499, '2000–2499'], [2500, 99999, '≥ 2500']];
 
     protected const NICU_GROUPS = [[0, 7, '0–7'], [8, 14, '8–14'], [15, 28, '15–28'], [29, 60, '29–60'], [61, 9999, '> 60']];
+
+    /** Chronological age at the first examination, in days: screening is due by 4 to 6 weeks. */
+    protected const FIRST_EXAM_GROUPS = [[0, 27, '< 4 weeks'], [28, 42, '4–6 weeks'], [43, 99999, '> 6 weeks']];
 
     /**
      * @return array<string, mixed>
@@ -83,10 +87,20 @@ class RegistryStatistics
                 ...$this->treatmentCharts($patients, $visits, $treatments),
             ],
             'crosstabs' => [
-                $this->crosstab($this->text('ROP by gestational age (weeks)'), $patients, 'ga_weeks', self::GA_GROUPS),
-                $this->crosstab($this->text('ROP by birth weight (g)'), $patients, 'birth_weight_g', self::WEIGHT_GROUPS),
+                $this->crosstab($this->text('ROP by gestational age (weeks)'), $this->rangeGroups($patients, 'ga_weeks', self::GA_GROUPS)),
+                $this->crosstab($this->text('ROP by birth weight (g)'), $this->rangeGroups($patients, 'birth_weight_g', self::WEIGHT_GROUPS)),
+                $this->crosstab($this->text('ROP by respiratory support'), $this->enumGroups($patients, 'respiratory_support', RespiratorySupport::cases())),
+                $this->crosstab($this->text('ROP by NICU stay (days)'), $this->rangeGroups($patients, 'nicu_days', self::NICU_GROUPS)),
+                $this->crosstab($this->text('ROP by multiplicity'), $this->enumGroups($patients, 'multiplicity', Multiplicity::cases())),
+                $this->crosstab($this->text('ROP by age at first examination'), $this->rangeGroups(
+                    $patients,
+                    fn (Patient $patient): ?int => $patient->chronologicalAgeInDays($patient->first_visit_date),
+                    self::FIRST_EXAM_GROUPS,
+                )),
             ],
+            'doctors' => $this->crosstab($this->text('Patients by referring doctor'), $this->doctorGroups($patients)),
             'monthly' => $this->monthly($patients, $visits, $treatments),
+            'fees' => $this->fees($visits),
         ];
     }
 
@@ -338,6 +352,11 @@ class RegistryStatistics
             return [];
         }
 
+        // Most frequent first, so the findings never recorded come last.
+        $byValue = fn (array $items): array => collect($items)->sortByDesc('value')->values()->all();
+        $patientItems = $byValue($patientItems);
+        $eyeItems = $byValue($eyeItems);
+
         return [
             'finding_patients' => $this->chart($this->text('Patients with each eye finding'), $this->text('patients'), $patients->count(), 0, $patientItems),
             'finding_eyes' => $this->chart($this->text('Eyes with each eye finding'), $this->text('eyes'), $patients->count() * 2, 0, $eyeItems),
@@ -417,32 +436,21 @@ class RegistryStatistics
     }
 
     /**
-     * Incidence of retinopathy and treatment within each range of a numeric attribute.
+     * Incidence of retinopathy and treatment within each group of patients.
      *
-     * @param  Collection<int, Patient>  $patients
-     * @param  list<array{0: int, 1: int, 2: string}>  $groups
+     * @param  array<string, Collection<int, Patient>>  $groups
      * @return array{title: string, rows: list<array<string, mixed>>}
      */
-    protected function crosstab(string $title, Collection $patients, string $attribute, array $groups): array
+    protected function crosstab(string $title, array $groups): array
     {
         $rows = [];
 
-        foreach ([...$groups, [null, null, $this->text('Not recorded')]] as [$min, $max, $label]) {
-            $group = $patients->filter(function (Patient $patient) use ($attribute, $min, $max): bool {
-                $value = $patient->getAttribute($attribute);
-
-                return $min === null ? $value === null : ($value !== null && $value >= $min && $value <= $max);
-            });
-
-            if ($min === null && $group->isEmpty()) {
-                continue;
-            }
-
+        foreach ($groups as $label => $group) {
             $known = $group->whereNotNull('any_rop')->count();
             $withRop = $group->where('any_rop', true)->count();
 
             $rows[] = [
-                'label' => $label,
+                'label' => (string) $label,
                 'patients' => $group->count(),
                 'known' => $known,
                 'rop' => $withRop,
@@ -453,6 +461,121 @@ class RegistryStatistics
         }
 
         return ['title' => $title, 'rows' => $rows];
+    }
+
+    /**
+     * The patients within each range of a numeric attribute, then those without a value, if any.
+     *
+     * @param  Collection<int, Patient>  $patients
+     * @param  string|Closure(Patient): (int|null)  $attribute  the attribute, or what to read from each patient
+     * @param  list<array{0: int, 1: int, 2: string}>  $ranges
+     * @return array<string, Collection<int, Patient>>
+     */
+    protected function rangeGroups(Collection $patients, string|Closure $attribute, array $ranges): array
+    {
+        $values = $patients->map(fn (Patient $patient): mixed => is_string($attribute) ? $patient->getAttribute($attribute) : $attribute($patient));
+        $groups = [];
+
+        foreach ($ranges as [$min, $max, $label]) {
+            $groups[$this->text($label)] = $patients->filter(
+                fn (Patient $patient, int $key): bool => $values[$key] !== null && $values[$key] >= $min && $values[$key] <= $max,
+            );
+        }
+
+        return $this->withNotRecorded($groups, $patients->filter(fn (Patient $patient, int $key): bool => $values[$key] === null));
+    }
+
+    /**
+     * The patients with each value of an enum attribute, then those without a value, if any.
+     *
+     * @param  Collection<int, Patient>  $patients
+     * @param  array<int, BackedEnum>  $cases
+     * @return array<string, Collection<int, Patient>>
+     */
+    protected function enumGroups(Collection $patients, string $attribute, array $cases): array
+    {
+        $groups = [];
+
+        foreach ($cases as $case) {
+            $group = $patients->filter(fn (Patient $patient): bool => $patient->getAttribute($attribute) === $case);
+
+            if ($group->isNotEmpty()) {
+                $groups[method_exists($case, 'label') ? $case->label() : (string) $case->value] = $group;
+            }
+        }
+
+        return $this->withNotRecorded($groups, $patients->filter(fn (Patient $patient): bool => $patient->getAttribute($attribute) === null));
+    }
+
+    /**
+     * The patients of each referring doctor, most referrals first, then those without one.
+     *
+     * @param  Collection<int, Patient>  $patients
+     * @return array<string, Collection<int, Patient>>
+     */
+    protected function doctorGroups(Collection $patients): array
+    {
+        $groups = $patients
+            ->whereNotNull('referring_doctor')
+            ->groupBy('referring_doctor')
+            ->sortBy([fn (Collection $a, Collection $b): int => $b->count() <=> $a->count(), fn (Collection $a, Collection $b): int => strcmp((string) $a->first()?->referring_doctor, (string) $b->first()?->referring_doctor)])
+            ->map(fn (Collection $group): Collection => $group->values())
+            ->all();
+
+        return $this->withNotRecorded($groups, $patients->whereNull('referring_doctor'));
+    }
+
+    /**
+     * @param  array<string, Collection<int, Patient>>  $groups
+     * @param  Collection<int, Patient>  $unrecorded
+     * @return array<string, Collection<int, Patient>>
+     */
+    protected function withNotRecorded(array $groups, Collection $unrecorded): array
+    {
+        if ($unrecorded->isNotEmpty()) {
+            $groups[$this->text('Not recorded')] = $unrecorded;
+        }
+
+        return $groups;
+    }
+
+    /**
+     * The fees recorded at the visits: the total, how many visits were charged each
+     * amount, and the total of each month, newest first. A visit without a fee has no
+     * fee recorded, which is not the same as free (a fee of 0).
+     *
+     * @param  Collection<int, Visit>  $visits
+     * @return array{total: int, visits: int, recorded: int, free: int, amounts: list<array{fee: int, visits: int, total: int}>, months: list<array{month: string|null, visits: int, total: int}>}
+     */
+    protected function fees(Collection $visits): array
+    {
+        $recorded = $visits->filter(fn (Visit $visit): bool => $visit->fee !== null);
+
+        $summary = fn (Collection $group): array => ['visits' => $group->count(), 'total' => (int) $group->sum('fee')];
+
+        $amounts = $recorded
+            ->groupBy('fee')
+            ->map(fn (Collection $group, int|string $fee): array => ['fee' => (int) $fee, ...$summary($group)])
+            ->sortBy([['visits', 'desc'], ['fee', 'desc']])
+            ->values()
+            ->all();
+
+        // Visits without a date are listed last.
+        $months = $recorded
+            ->groupBy(fn (Visit $visit): string => $visit->visit_date?->format('Y-m') ?? '')
+            ->sortKeysDesc()
+            ->map(fn (Collection $group, string $month): array => ['month' => $month === '' ? null : $month, ...$summary($group)])
+            ->values()
+            ->all();
+
+        return [
+            'total' => (int) $recorded->sum('fee'),
+            'visits' => $visits->count(),
+            'recorded' => $recorded->count(),
+            'free' => $recorded->filter(fn (Visit $visit): bool => $visit->fee === 0)->count(),
+            'amounts' => $amounts,
+            'months' => $months,
+        ];
     }
 
     /**

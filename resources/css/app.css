@@ -113,6 +113,9 @@
   so its vertical metrics can be overridden. The stock metrics (ascent 1000, descent 250)
   place the line's centre at Latin cap height; these put it in the middle of Arabic letters
   and Western digits alike. The space is included so the font can lead the stack.
+  The box must also hold the whole letter: inputs clip text to it whatever the line height,
+  and Arabic reaches 0.5em below the baseline (ح ع ي) and 1em above it (أ إ). Ascent and
+  descent grow by the same amount, which keeps the baseline where it is on any fixed line.
 */
 @font-face {
     font-family: 'Readex Pro';
@@ -120,8 +123,8 @@
     font-weight: 400;
     font-display: swap;
     src: url('../fonts/readex-pro-arabic-400.woff2') format('woff2');
-    ascent-override: 93%;
-    descent-override: 32%;
+    ascent-override: 113%;
+    descent-override: 52%;
     line-gap-override: 0%;
     unicode-range:
         U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
@@ -136,8 +139,8 @@
     font-weight: 500;
     font-display: swap;
     src: url('../fonts/readex-pro-arabic-500.woff2') format('woff2');
-    ascent-override: 93%;
-    descent-override: 32%;
+    ascent-override: 113%;
+    descent-override: 52%;
     line-gap-override: 0%;
     unicode-range:
         U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
@@ -152,8 +155,8 @@
     font-weight: 600;
     font-display: swap;
     src: url('../fonts/readex-pro-arabic-600.woff2') format('woff2');
-    ascent-override: 93%;
-    descent-override: 32%;
+    ascent-override: 113%;
+    descent-override: 52%;
     line-gap-override: 0%;
     unicode-range:
         U+0020, U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,

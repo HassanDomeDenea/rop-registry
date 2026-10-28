@@ -42,6 +42,7 @@ export type PatientRow = {
     unverified: boolean;
     phone: string | null;
     referral_date: string | null;
+    referring_doctor: string | null;
     exams_count: number;
     any_rop: boolean | null;
     highest_stage: string | null;
@@ -65,7 +66,6 @@ export type PatientRow = {
 export type Patient = PatientRow & {
     mother_name: string | null;
     delivery_mode: string | null;
-    referring_doctor: string | null;
     nicu_days: number | null;
     respiratory_support: string | null;
     support_days: number | null;

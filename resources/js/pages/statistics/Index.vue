@@ -3,14 +3,19 @@ import { Head, router } from '@inertiajs/vue3';
 import { CalendarRange, Printer, X } from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import BarList from '@/components/charts/BarList.vue';
+import FeeSummary from '@/components/charts/FeeSummary.vue';
+import type { Fees } from '@/components/charts/FeeSummary.vue';
 import MonthlyChart from '@/components/charts/MonthlyChart.vue';
 import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
+import CrosstabTable from '@/components/registry/CrosstabTable.vue';
+import type { Crosstab } from '@/components/registry/CrosstabTable.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import StatCard from '@/components/registry/StatCard.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import { todayIso } from '@/lib/utils';
+import patientRoutes from '@/routes/patients';
 import statisticsRoutes from '@/routes/statistics';
 import type { ChartData } from '@/types';
 
@@ -22,19 +27,6 @@ type Numeric = {
     median: number | null;
     min: number | null;
     max: number | null;
-};
-
-type Crosstab = {
-    title: string;
-    rows: {
-        label: string;
-        patients: number;
-        known: number;
-        rop: number;
-        rop_percent: number | null;
-        type_one: number;
-        treated: number;
-    }[];
 };
 
 const props = defineProps<{
@@ -55,6 +47,8 @@ const props = defineProps<{
         numeric: Numeric[];
         charts: Record<string, ChartData>;
         crosstabs: Crosstab[];
+        doctors: Crosstab;
+        fees: Fees;
         monthly: {
             month: string;
             new_patients: number;
@@ -129,6 +123,13 @@ function apply() {
         ) as Record<string, string>,
         { preserveState: true, preserveScroll: true },
     );
+}
+
+/** The patients of a referring doctor, or those without one. */
+function doctorPatients(label: string) {
+    return patientRoutes.index.url({
+        query: { doctor: label === t('Not recorded') ? 'none' : label },
+    });
 }
 
 function preset(months: number | null) {
@@ -338,84 +339,14 @@ function number(value: number | null) {
     </section>
 
     <div class="grid grid-cols-2 gap-6">
-        <section
+        <CrosstabTable
             v-for="table in statistics.crosstabs"
             :key="table.title"
-            class="rounded-xl border bg-card shadow-xs"
-        >
-            <header class="border-b px-5 py-3.5">
-                <h2 class="text-sm font-semibold">{{ table.title }}</h2>
-                <p class="text-xs text-muted-foreground">
-                    {{ t('ROP rate among patients with a known ROP status') }}
-                </p>
-            </header>
-            <table class="w-full text-sm">
-                <thead>
-                    <tr
-                        class="border-b bg-muted/40 text-xs text-muted-foreground"
-                    >
-                        <th class="px-5 py-2 text-start font-medium">
-                            {{ t('Group') }}
-                        </th>
-                        <th class="px-3 py-2 text-end font-medium">
-                            {{ t('Patients') }}
-                        </th>
-                        <th class="px-3 py-2 text-end font-medium">
-                            {{ t('ROP') }}
-                        </th>
-                        <th class="px-3 py-2 text-start font-medium">
-                            {{ t('ROP rate') }}
-                        </th>
-                        <th class="px-3 py-2 text-end font-medium">
-                            {{ t('Type 1') }}
-                        </th>
-                        <th class="px-5 py-2 text-end font-medium">
-                            {{ t('Treated') }}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
-                        v-for="row in table.rows"
-                        :key="row.label"
-                        class="border-b tabular-nums last:border-b-0"
-                    >
-                        <td class="px-5 py-2.5">{{ row.label }}</td>
-                        <td class="px-3 py-2.5 text-end">{{ row.patients }}</td>
-                        <td class="px-3 py-2.5 text-end">
-                            {{ row.rop }}
-                            <span class="text-xs text-muted-foreground"
-                                >/ {{ row.known }}</span
-                            >
-                        </td>
-                        <td class="px-3 py-2.5">
-                            <div class="flex items-center gap-2">
-                                <span
-                                    class="flex h-2 w-24 rounded-full bg-muted"
-                                >
-                                    <span
-                                        class="h-full rounded-full bg-series-1"
-                                        :style="{
-                                            width: `${row.rop_percent ?? 0}%`,
-                                        }"
-                                    />
-                                </span>
-                                <span class="w-12 text-xs">
-                                    {{
-                                        row.rop_percent === null
-                                            ? '—'
-                                            : `${row.rop_percent}%`
-                                    }}
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-3 py-2.5 text-end">{{ row.type_one }}</td>
-                        <td class="px-5 py-2.5 text-end">{{ row.treated }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+            :table="table"
+        />
     </div>
+
+    <CrosstabTable :table="statistics.doctors" :row-href="doctorPatients" />
 
     <section v-for="section in sections" :key="section.title" class="space-y-4">
         <h2 class="text-base font-semibold tracking-tight">
@@ -431,6 +362,8 @@ function number(value: number | null) {
             />
         </div>
     </section>
+
+    <FeeSummary :fees="statistics.fees" />
 
     <p class="text-xs text-muted-foreground">
         {{

@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import ShowMoreButton from '@/components/registry/ShowMoreButton.vue';
 import { useI18n } from '@/composables/useI18n';
+import { useShowMore } from '@/composables/useShowMore';
 import type { ChartData } from '@/types';
 
 /**
  * A single-series horizontal bar chart for a distribution. Every bar carries its
  * value and share at the tip, and the footer states the denominator and how many
  * values are unknown, so no count is read without its context.
+ * Past ten bars, the rest are folded behind a button.
  */
 const props = defineProps<{ chart: ChartData }>();
 
 const { t, formatNumber } = useI18n();
+
+const { expanded, hiddenCount, isFolded, toggle } = useShowMore(
+    () => props.chart.items.length,
+);
 
 const known = computed(() =>
     props.chart.items.reduce((sum, item) => sum + item.value, 0),
@@ -55,9 +62,10 @@ function labelDirection(label: string) {
 
         <ul v-if="known > 0" class="flex-1 space-y-2.5">
             <li
-                v-for="item in chart.items"
+                v-for="(item, index) in chart.items"
                 :key="item.label"
                 class="group grid grid-cols-[minmax(0,9.5rem)_1fr_auto] items-center gap-3 text-sm"
+                :class="{ 'hidden print:grid': isFolded(index) }"
                 :title="`${item.label}: ${formatNumber(item.value)} ${chart.unit}${share(item.value) ? ` (${share(item.value)})` : ''}`"
             >
                 <span
@@ -89,7 +97,16 @@ function labelDirection(label: string) {
                 </span>
             </li>
         </ul>
-        <p v-else class="flex-1 py-6 text-center text-sm text-muted-foreground">
+        <ShowMoreButton
+            class="-ms-2 mt-2 self-start"
+            :expanded="expanded"
+            :hidden-count="hiddenCount"
+            @toggle="toggle"
+        />
+        <p
+            v-if="known === 0"
+            class="flex-1 py-6 text-center text-sm text-muted-foreground"
+        >
             {{ t('No data recorded') }}
         </p>
 

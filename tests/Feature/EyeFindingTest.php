@@ -128,6 +128,20 @@ class EyeFindingTest extends TestCase
                     === ['Baby Both', 'Baby One', 'Baby Unverified']));
     }
 
+    public function test_finding_charts_list_the_most_frequent_finding_first()
+    {
+        $strabismus = $this->finding('Strabismus');
+        $cataract = $this->finding('Cataract');
+        Visit::factory()->create(['right_findings' => [$strabismus->id], 'left_findings' => [$strabismus->id]]);
+        Visit::factory()->create(['right_findings' => [$strabismus->id, $cataract->id]]);
+
+        $items = app(RegistryStatistics::class)->calculate(null, null)['charts']['finding_patients']['items'];
+
+        $this->assertSame(['label' => 'Strabismus', 'value' => 2], $items[0]);
+        $this->assertSame(['label' => 'Cataract', 'value' => 1], $items[1]);
+        $this->assertSame(0, $items[2]['value']);
+    }
+
     public function test_source_records_can_be_switched_off_for_good()
     {
         $patient = Patient::factory()->create(['source_notes' => 'Full PDF pages: 12']);

@@ -90,6 +90,11 @@ class Patient extends Model
     ];
 
     /**
+     * The value of the referring doctor filter that lists the patients without one.
+     */
+    public const NO_DOCTOR = 'none';
+
+    /**
      * The summary columns maintained by the PatientSummarizer.
      *
      * @var list<string>
@@ -220,6 +225,51 @@ class Patient extends Model
     public function scopeVerified(Builder $query): void
     {
         $query->where('unverified', false);
+    }
+
+    /**
+     * Get every referring doctor on record with the number of patients referred, most first.
+     *
+     * @return list<array{label: string, patients: int}>
+     */
+    public static function referringDoctorCounts(): array
+    {
+        /** @var list<array{label: string, patients: int}> */
+        return static::query()
+            ->whereNotNull('referring_doctor')
+            ->selectRaw('referring_doctor, count(*) as patients')
+            ->groupBy('referring_doctor')
+            ->orderByDesc('patients')
+            ->orderBy('referring_doctor')
+            ->get()
+            ->map(fn (Patient $patient): array => [
+                'label' => (string) $patient->referring_doctor,
+                'patients' => (int) $patient->getAttribute('patients'),
+            ])
+            ->all();
+    }
+
+    /**
+     * Set the referring doctor of the given patients, one by one so that each change is
+     * recorded in the history of the patient. Returns the number of patients changed.
+     *
+     * @param  Builder<Patient>  $patients
+     */
+    public static function assignReferringDoctor(Builder $patients, ?string $doctor): int
+    {
+        $doctor = trim((string) $doctor) ?: null;
+        $changed = 0;
+
+        $patients->where(fn (Builder $query) => $doctor === null
+            ? $query->whereNotNull('referring_doctor')
+            : $query->whereNull('referring_doctor')->orWhere('referring_doctor', '!=', $doctor))
+            ->orderBy('id')
+            ->each(function (Patient $patient) use ($doctor, &$changed): void {
+                $patient->update(['referring_doctor' => $doctor]);
+                $changed++;
+            });
+
+        return $changed;
     }
 
     public function auditLabel(): string
