@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { KeyRound, ListChecks, Palette, UserRound } from '@lucide/vue';
+import { KeyRound, ListChecks, Palette, Trash2, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useI18n } from '@/composables/useI18n';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as listsIndex } from '@/routes/lists';
+import { index as patientsIndex } from '@/routes/patients';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
@@ -23,6 +24,12 @@ const items = computed<NavItem[]>(() => [
     { title: t('Lists'), href: listsIndex(), icon: ListChecks },
     { title: t('Profile'), href: editProfile(), icon: UserRound },
     { title: t('Password'), href: editSecurity(), icon: KeyRound },
+    // The deleted patients open in the patient list, out of the way of daily work.
+    {
+        title: t('Recycle bin'),
+        href: patientsIndex({ query: { trashed: 1 } }),
+        icon: Trash2,
+    },
 ]);
 </script>
 

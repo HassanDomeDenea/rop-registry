@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import { Sparkles } from '@lucide/vue';
 import { computed } from 'vue';
+import CheckList from '@/components/registry/CheckList.vue';
 import FormField from '@/components/registry/FormField.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
 import TextArea from '@/components/registry/TextArea.vue';
 import ZoneDiagram from '@/components/registry/ZoneDiagram.vue';
 import { useI18n } from '@/composables/useI18n';
 import { classifyRop } from '@/lib/rop';
-import type { Eye } from '@/types';
+import type { VisitFormData } from '@/composables/useVisitForm';
+import type { Eye, FindingOption } from '@/types';
 
 /**
  * The findings of one eye, in the order of the paper examination form:
- * plus disease, zone, stage, A-ROP, type of ROP.
+ * plus disease, zone, stage, A-ROP, type of ROP, then the other findings
+ * ticked from the editable eye findings list.
  */
 const props = defineProps<{
     eye: Eye;
-    form: Record<string, string | number | boolean | null>;
+    form: VisitFormData;
     errors: Record<string, string | undefined>;
+    findingOptions: FindingOption[];
 }>();
 
 // Zone, stage, plus and type are written in English in clinical practice,
@@ -76,6 +80,31 @@ const yesNo = computed(() => [
     { value: 'yes', label: 'Yes' },
     { value: 'no', label: 'No' },
 ]);
+
+const findings = computed<number[] | null>({
+    get: () =>
+        (props.form[key('findings')] as unknown as number[] | null) ?? null,
+    set: (value) => {
+        (props.form as Record<string, unknown>)[key('findings')] = value;
+    },
+});
+
+// A finding hidden from the list stays on the visits that already recorded it.
+const findingChoices = computed(() =>
+    props.findingOptions
+        .filter(
+            (option) =>
+                !option.hidden || (findings.value ?? []).includes(option.id),
+        )
+        .map((option) => ({ value: option.id, label: option.label })),
+);
+
+const findingErrors = computed(() =>
+    Object.entries(props.errors)
+        .filter(([field]) => field.startsWith(key('findings')))
+        .map(([, message]) => message)
+        .find(Boolean),
+);
 
 const aggressive = computed({
     get: () =>
@@ -147,6 +176,14 @@ const aggressive = computed({
                 v-model="form[key('rop_status')]"
                 :options="englishOptions('rop_status')"
             />
+        </FormField>
+
+        <FormField
+            v-if="findingChoices.length"
+            label="Other findings"
+            :error="findingErrors"
+        >
+            <CheckList v-model="findings" :options="findingChoices" />
         </FormField>
 
         <FormField label="Notes for this eye" :error="errors[key('notes')]">

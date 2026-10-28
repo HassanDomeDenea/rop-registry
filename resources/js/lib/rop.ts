@@ -48,6 +48,7 @@ export const EYE_FIELDS = [
     'a_rop',
     'rop_type',
     'rop_status',
+    'findings',
     'notes',
 ] as const;
 

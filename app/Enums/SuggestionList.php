@@ -10,4 +10,5 @@ enum SuggestionList: string
 
     case Illness = 'illness';
     case ReferringDoctor = 'referring_doctor';
+    case EyeFinding = 'eye_finding';
 }

@@ -7,6 +7,7 @@ use App\Enums\PlusDisease;
 use App\Enums\RopStatus;
 use App\Enums\RopType;
 use App\Enums\Stage;
+use App\Enums\SuggestionList;
 use App\Enums\VisitKind;
 use App\Enums\Zone;
 use App\Models\Visit;
@@ -54,6 +55,11 @@ class VisitRequest extends FormRequest
                 "{$eye}_a_rop" => ['nullable', 'boolean'],
                 "{$eye}_rop_type" => ['nullable', Rule::enum(RopType::class)],
                 "{$eye}_rop_status" => ['nullable', Rule::enum(RopStatus::class)],
+                "{$eye}_findings" => ['nullable', 'array', 'max:50'],
+                "{$eye}_findings.*" => [
+                    'integer', 'distinct',
+                    Rule::exists('suggestions', 'id')->where('list', SuggestionList::EyeFinding->value),
+                ],
                 "{$eye}_notes" => ['nullable', 'string', 'max:2000'],
             ];
         }

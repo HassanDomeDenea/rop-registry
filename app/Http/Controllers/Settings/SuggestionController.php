@@ -22,7 +22,14 @@ class SuggestionController extends Controller
             'suggestions' => Suggestion::query()
                 ->orderBy('position')
                 ->orderBy('id')
-                ->get(['id', 'list', 'label']),
+                ->get(['id', 'list', 'label', 'hidden_at'])
+                ->map(fn (Suggestion $suggestion): array => [
+                    'id' => $suggestion->id,
+                    'list' => $suggestion->list->value,
+                    'label' => $suggestion->label,
+                    'hidden' => $suggestion->hidden_at !== null,
+                    'visits_count' => $suggestion->list === SuggestionList::EyeFinding ? $suggestion->visitsCount() : null,
+                ]),
         ]);
     }
 
@@ -54,11 +61,32 @@ class SuggestionController extends Controller
     }
 
     /**
-     * Remove an entry from its list.
+     * Remove an entry from its list. An eye finding that saved visits still hold is hidden
+     * from the forms instead, so that those visits and the statistics keep it.
      */
     public function destroy(Suggestion $suggestion): RedirectResponse
     {
+        if ($suggestion->list === SuggestionList::EyeFinding && $suggestion->visitsCount() > 0) {
+            $suggestion->update(['hidden_at' => now()]);
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Hidden from the examination form. Visits that recorded it keep it.')]);
+
+            return back();
+        }
+
         $suggestion->delete();
+
+        return back();
+    }
+
+    /**
+     * Hide an entry from the forms, or offer it again.
+     */
+    public function visibility(Request $request, Suggestion $suggestion): RedirectResponse
+    {
+        $hidden = $request->validate(['hidden' => ['required', 'boolean']])['hidden'];
+
+        $suggestion->update(['hidden_at' => $hidden ? now() : null]);
 
         return back();
     }

@@ -1,0 +1,21 @@
+{
+  "repository": "HassanDomeDenea/rop-registry",
+  "branch": "main",
+  "applicationDirectory": "D:\\HddServer\\sites\\rop",
+  "kind": "Laravel",
+  "healthUrl": "http://127.0.0.1/up",
+  "manageWorkers": true,
+  "drainTimeoutSeconds": 120,
+  "buildFrontend": true,
+  "frontendPackageManager": "npm",
+  "runMigrations": true,
+  "backupCommands": [
+    { "file": "php", "args": ["artisan", "registry:backup"] }
+  ],
+  "beforeDeployCommands": [],
+  "installCommands": [
+    { "file": "php", "args": ["artisan", "db:seed", "--force", "--no-interaction"] }
+  ],
+  "updateCommands": [],
+  "afterDeployCommands": []
+}

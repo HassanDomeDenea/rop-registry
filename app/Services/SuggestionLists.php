@@ -22,6 +22,18 @@ class SuggestionLists
     ];
 
     /**
+     * The eye findings list a new registry starts with: findings besides the ROP
+     * classification, ticked for each eye on the examination form.
+     *
+     * @var list<string>
+     */
+    public const DEFAULT_EYE_FINDINGS = [
+        'Tractional RD (TRD)', 'Exudative RD', 'Retinal hemorrhage', 'Vitreous hemorrhage', 'Retinal fibrosis',
+        'Retinal fold', 'Macular dragging', 'Cataract', 'Shallow AC', 'Corneal opacity', 'Coloboma',
+        'Poor pupil dilation', 'Iris neovascularization', 'Persistent tunica vasculosa lentis', 'Strabismus',
+    ];
+
+    /**
      * Tick the listed illnesses found in the free text of every patient that has no checklist yet,
      * and add the referring doctors already on record to their list.
      */

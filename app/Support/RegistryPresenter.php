@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\Audit;
 use App\Models\Patient;
 use App\Models\ReviewItem;
+use App\Models\Suggestion;
 use App\Models\Treatment;
 use App\Models\Visit;
 use Illuminate\Support\Carbon;
@@ -56,8 +57,9 @@ class RegistryPresenter
             ...self::patientRow($patient),
             ...$patient->only([
                 'mother_name', 'delivery_mode', 'referring_doctor', 'nicu_days', 'respiratory_support', 'support_days',
-                'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone_alt', 'address', 'notes', 'source_notes',
+                'o2_days', 'cpap_days', 'illnesses', 'systemic_illness', 'phone_alt', 'address', 'notes',
             ]),
+            'source_notes' => self::showsSourceRecords() ? $patient->source_notes : null,
             'source_notes_reviewed_at' => $patient->source_notes_reviewed_at?->toIso8601String(),
             'illness_summary' => $patient->illnessSummary(),
             'created_at' => $patient->created_at?->toIso8601String(),
@@ -89,6 +91,9 @@ class RegistryPresenter
     {
         return [
             ...$visit->attributesToArray(),
+            'source_reference' => self::showsSourceRecords() ? $visit->source_reference : null,
+            'right_finding_labels' => $visit->eyeFindingLabels('right'),
+            'left_finding_labels' => $visit->eyeFindingLabels('left'),
             'pma_days' => $patient->postmenstrualAgeInDays($visit->visit_date),
             'age_days' => $patient->chronologicalAgeInDays($visit->visit_date),
             'right_suggested_type' => $visit->eyeRopType('right')?->value,
@@ -103,8 +108,45 @@ class RegistryPresenter
     {
         return [
             ...$treatment->attributesToArray(),
+            'source_reference' => self::showsSourceRecords() ? $treatment->source_reference : null,
             'pma_days' => $patient->postmenstrualAgeInDays($treatment->performed_date),
         ];
+    }
+
+    /**
+     * Name the ticked eye findings, which are kept as ids, in an audited change.
+     *
+     * @param  array<string, mixed>|null  $values
+     * @return array<string, mixed>|null
+     */
+    protected static function auditValues(?array $values): ?array
+    {
+        if ($values === null) {
+            return null;
+        }
+
+        foreach (['right_findings', 'left_findings'] as $field) {
+            if (! isset($values[$field])) {
+                continue;
+            }
+
+            $ids = is_string($values[$field]) ? json_decode($values[$field], true) : $values[$field];
+
+            $values[$field] = is_array($ids)
+                ? implode(', ', array_map(fn (mixed $id): string => Suggestion::eyeFindingLabels()[(int) $id] ?? '#'.$id, $ids))
+                : $values[$field];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Whether the records copied from the paper sources at import are shown. Once they have
+     * all been reviewed, SHOW_SOURCE_RECORDS=false hides them everywhere for good.
+     */
+    public static function showsSourceRecords(): bool
+    {
+        return (bool) config('registry.source_records');
     }
 
     /**
@@ -137,7 +179,9 @@ class RegistryPresenter
     public static function audit(Audit $audit): array
     {
         return [
-            ...$audit->only(['id', 'event', 'auditable_type', 'auditable_id', 'patient_id', 'label', 'old_values', 'new_values']),
+            ...$audit->only(['id', 'event', 'auditable_type', 'auditable_id', 'patient_id', 'label']),
+            'old_values' => self::auditValues($audit->old_values),
+            'new_values' => self::auditValues($audit->new_values),
             'user' => $audit->user?->name,
             'patient_name' => $audit->relationLoaded('patient') ? $audit->patient?->name : null,
             'created_at' => $audit->created_at?->toIso8601String(),

@@ -28,7 +28,11 @@ const {
 } = useI18n();
 
 const record = computed(
-    () => props.visit as unknown as Record<string, string | boolean | null>,
+    () =>
+        props.visit as unknown as Record<
+            string,
+            string | boolean | string[] | null
+        >,
 );
 
 function finding(eye: Eye, field: string, enumName?: EnumName) {
@@ -42,6 +46,10 @@ function finding(eye: Eye, field: string, enumName?: EnumName) {
         return value ? 'Yes' : 'No';
     }
 
+    if (Array.isArray(value)) {
+        return value.join(', ');
+    }
+
     return enumName ? english.enumLabel(enumName, value) : value;
 }
 
@@ -53,6 +61,7 @@ const rows: { label: string; field: string; enum?: EnumName }[] = [
     { label: 'A-ROP (aggressive)', field: 'a_rop' },
     { label: 'Type of ROP', field: 'rop_type', enum: 'rop_type' },
     { label: 'ROP status', field: 'rop_status', enum: 'rop_status' },
+    { label: 'Other findings', field: 'finding_labels' },
     { label: 'Notes', field: 'notes' },
 ];
 
@@ -174,7 +183,9 @@ const header = computed(() => [
                     </h3>
                     <div class="flex justify-center">
                         <ZoneDiagram
-                            :model-value="record[`${eye}_zone`]"
+                            :model-value="
+                                record[`${eye}_zone`] as string | null
+                            "
                             :eye="eye"
                             readonly
                         />

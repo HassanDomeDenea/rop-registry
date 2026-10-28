@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Check, ListChecks, Pencil, Plus, Trash2, X } from '@lucide/vue';
+import {
+    Check,
+    Eye,
+    EyeOff,
+    ListChecks,
+    Pencil,
+    Plus,
+    Trash2,
+    X,
+} from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
@@ -9,7 +18,14 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import listRoutes from '@/routes/lists';
 
-type Suggestion = { id: number; list: string; label: string };
+type Suggestion = {
+    id: number;
+    list: string;
+    label: string;
+    hidden: boolean;
+    /** For eye findings: the visits that ticked the entry, which keep it when it is removed. */
+    visits_count: number | null;
+};
 
 const props = defineProps<{ suggestions: Suggestion[] }>();
 
@@ -19,6 +35,8 @@ const descriptions: Record<string, string> = {
     illness: 'Shown as a checklist on the patient form',
     referring_doctor:
         'Offered while typing the referring doctor. A new name typed on a patient is added here automatically.',
+    eye_finding:
+        'Ticked for each eye on the examination form and counted in the statistics. Renaming an entry renames it on every visit; an entry already recorded on visits is hidden instead of deleted.',
 };
 
 const drafts = reactive<Record<string, string | null>>({});
@@ -66,6 +84,14 @@ function save(list: string) {
     );
 }
 
+function setHidden(suggestion: Suggestion, hidden: boolean) {
+    router.put(
+        listRoutes.visibility.url(suggestion.id),
+        { hidden },
+        { preserveScroll: true },
+    );
+}
+
 function remove(suggestion: Suggestion) {
     router.delete(listRoutes.destroy.url(suggestion.id), {
         preserveScroll: true,
@@ -90,6 +116,7 @@ function remove(suggestion: Suggestion) {
                     v-for="(suggestion, index) in entries(list.value)"
                     :key="suggestion.id"
                     class="border-b"
+                    :class="{ 'text-muted-foreground': suggestion.hidden }"
                 >
                     <td
                         class="w-12 px-5 py-2 text-xs text-muted-foreground tabular-nums"
@@ -109,7 +136,25 @@ function remove(suggestion: Suggestion) {
                                 @keydown.esc="editing = null"
                             />
                         </form>
-                        <span v-else dir="auto">{{ suggestion.label }}</span>
+                        <span v-else class="flex items-center gap-2">
+                            <span dir="auto">{{ suggestion.label }}</span>
+                            <span
+                                v-if="suggestion.hidden"
+                                class="rounded bg-muted px-1.5 py-0.5 text-xs"
+                            >
+                                {{ t('Hidden from the form') }}
+                            </span>
+                            <span
+                                v-if="suggestion.visits_count"
+                                class="text-xs text-muted-foreground"
+                            >
+                                {{
+                                    t(':count visits', {
+                                        count: suggestion.visits_count,
+                                    })
+                                }}
+                            </span>
+                        </span>
                     </td>
                     <td class="w-24 px-3 py-1.5 text-end whitespace-nowrap">
                         <template v-if="editing?.id === suggestion.id">
@@ -145,6 +190,30 @@ function remove(suggestion: Suggestion) {
                                 <Pencil />
                             </Button>
                             <Button
+                                v-if="suggestion.hidden"
+                                variant="ghost"
+                                size="icon-sm"
+                                :title="t('Offer on the form again')"
+                                @click="setHidden(suggestion, false)"
+                            >
+                                <Eye />
+                            </Button>
+                            <Button
+                                v-else-if="suggestion.visits_count"
+                                variant="ghost"
+                                size="icon-sm"
+                                class="text-muted-foreground"
+                                :title="
+                                    t(
+                                        'Hide from the form. Visits that recorded it keep it.',
+                                    )
+                                "
+                                @click="setHidden(suggestion, true)"
+                            >
+                                <EyeOff />
+                            </Button>
+                            <Button
+                                v-else
                                 variant="ghost"
                                 size="icon-sm"
                                 class="text-muted-foreground hover:text-destructive"
@@ -190,7 +259,7 @@ function remove(suggestion: Suggestion) {
     <p class="text-xs text-muted-foreground">
         {{
             t(
-                'Renaming or deleting an entry changes what is offered from now on. Records already saved keep their text.',
+                'Illnesses and referring doctors: renaming or deleting an entry changes what is offered from now on. Records already saved keep their text.',
             )
         }}
     </p>

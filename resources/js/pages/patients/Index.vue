@@ -10,7 +10,6 @@ import {
     Printer,
     RotateCcw,
     Search,
-    Trash2,
     UserPlus,
     Users,
     X,
@@ -35,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
 import patientRoutes from '@/routes/patients';
-import type { Paginated, PatientRow } from '@/types';
+import type { FindingOption, Paginated, PatientRow } from '@/types';
 
 type Filters = {
     search: string;
@@ -43,6 +42,8 @@ type Filters = {
     sex: string;
     rop: string;
     treatment: string;
+    /** Patients with this eye finding ticked at one visit or more. */
+    finding: number | null;
     review: boolean;
     unverified: boolean;
     trashed: boolean;
@@ -54,7 +55,7 @@ type Filters = {
 const props = defineProps<{
     patients: Paginated<PatientRow>;
     filters: Filters;
-    trashedCount: number;
+    findingOptions: FindingOption[];
     unverifiedCount: number;
 }>();
 
@@ -143,6 +144,13 @@ const treatmentOptions = computed(() => [
     { value: 'none', label: t('No treatment recorded') },
 ]);
 
+const findingSelectOptions = computed(() =>
+    props.findingOptions.map((option) => ({
+        value: String(option.id),
+        label: option.label,
+    })),
+);
+
 const hasFilters = computed(
     () =>
         state.search !== '' ||
@@ -150,6 +158,7 @@ const hasFilters = computed(
         state.sex !== '' ||
         state.rop !== '' ||
         state.treatment !== '' ||
+        state.finding !== null ||
         state.review ||
         state.unverified,
 );
@@ -162,6 +171,7 @@ function query(): Record<string, string | number | boolean> {
         sex: '',
         rop: '',
         treatment: '',
+        finding: null,
         review: false,
         unverified: false,
         trashed: false,
@@ -172,7 +182,11 @@ function query(): Record<string, string | number | boolean> {
 
     return Object.fromEntries(
         Object.entries(state)
-            .filter(([key, value]) => value !== defaults[key as keyof Filters])
+            .filter(
+                (entry): entry is [string, string | number | boolean] =>
+                    entry[1] !== null &&
+                    entry[1] !== defaults[entry[0] as keyof Filters],
+            )
             .map(([key, value]) => [key, value === true ? 1 : value]),
     );
 }
@@ -192,6 +206,11 @@ function setFilter<K extends keyof Filters>(key: K, value: Filters[K] | null) {
     reload();
 }
 
+function setFinding(value: string | number | boolean | null | undefined) {
+    state.finding = value ? Number(value) : null;
+    reload();
+}
+
 function sortBy(key: string, direction: 'asc' | 'desc') {
     state.sort = key;
     state.direction = direction;
@@ -205,14 +224,16 @@ function reset() {
         sex: '',
         rop: '',
         treatment: '',
+        finding: null,
         review: false,
         unverified: false,
     });
     reload();
 }
 
-function toggleTrashed() {
-    state.trashed = !state.trashed;
+/** The recycle bin is opened from the settings; this returns to the patients. */
+function leaveTrashed() {
+    state.trashed = false;
     reload();
 }
 
@@ -253,17 +274,9 @@ function printTable() {
         "
         class="no-print"
     >
-        <Button
-            v-if="trashedCount > 0 || state.trashed"
-            variant="ghost"
-            @click="toggleTrashed"
-        >
-            <component :is="state.trashed ? Users : Trash2" />
-            {{
-                state.trashed
-                    ? t('Back to patients')
-                    : t('Recycle bin (:count)', { count: trashedCount })
-            }}
+        <Button v-if="state.trashed" variant="ghost" @click="leaveTrashed">
+            <Users />
+            {{ t('Back to patients') }}
         </Button>
         <Button variant="outline" @click="printTable">
             <Printer />
@@ -369,6 +382,16 @@ function printTable() {
                 :options="treatmentOptions"
                 :placeholder="t('Any treatment')"
                 @update:model-value="setFilter('treatment', $event as string)"
+            />
+            <NativeSelect
+                v-if="findingSelectOptions.length"
+                class="w-48"
+                :model-value="
+                    state.finding === null ? null : String(state.finding)
+                "
+                :options="findingSelectOptions"
+                :placeholder="t('Any eye finding')"
+                @update:model-value="setFinding"
             />
             <Button
                 :variant="state.review ? 'default' : 'outline'"

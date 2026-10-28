@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import CaptureBanner from '@/components/registry/CaptureBanner.vue';
+import ScrollToTopButton from '@/components/ScrollToTopButton.vue';
 import { Toaster } from '@/components/ui/sonner';
 </script>
 
@@ -17,6 +18,7 @@ import { Toaster } from '@/components/ui/sonner';
                 <slot />
             </main>
         </AppContent>
+        <ScrollToTopButton />
         <Toaster />
     </AppShell>
 </template>

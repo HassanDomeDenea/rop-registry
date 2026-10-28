@@ -89,6 +89,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Source records
+    |--------------------------------------------------------------------------
+    |
+    | The imported records keep what was copied from the paper sources: the
+    | source notes of each patient and the page references of visits and
+    | treatments. Once all of them have been reviewed they can be hidden for
+    | good with SHOW_SOURCE_RECORDS=false. They stay in the database.
+    |
+    */
+
+    'source_records' => (bool) env('SHOW_SOURCE_RECORDS', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Reminders
     |--------------------------------------------------------------------------
     |

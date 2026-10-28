@@ -22,7 +22,7 @@ import { useI18n } from '@/composables/useI18n';
 import type { VisitFormData } from '@/composables/useVisitForm';
 import { EYE_FIELDS, suggestFollowUp } from '@/lib/rop';
 import { addDays, daysBetween, todayIso } from '@/lib/utils';
-import type { Eye, Visit } from '@/types';
+import type { Eye, FindingOption, Visit } from '@/types';
 
 /**
  * The fields of one examination, as on the paper form: the examination itself, the
@@ -33,6 +33,8 @@ const props = defineProps<{
     form: VisitFormData;
     errors: Record<string, string | undefined>;
     commonFees: number[];
+    /** The editable list of other eye findings, ticked for each eye. */
+    findingOptions: FindingOption[];
     /** The latest earlier visit, offered for copying its findings. */
     previous?: Visit | null;
     /** Shown under the examination date instead of the default advice. */
@@ -200,7 +202,12 @@ function markBothNormal() {
                             >OD</span
                         >
                     </h3>
-                    <EyeFields eye="right" :form="form" :errors="errors" />
+                    <EyeFields
+                        eye="right"
+                        :form="form"
+                        :errors="errors"
+                        :finding-options="findingOptions"
+                    />
                 </div>
 
                 <div class="flex flex-col items-center gap-2 pt-24">
@@ -224,7 +231,12 @@ function markBothNormal() {
                             >OS</span
                         >
                     </h3>
-                    <EyeFields eye="left" :form="form" :errors="errors" />
+                    <EyeFields
+                        eye="left"
+                        :form="form"
+                        :errors="errors"
+                        :finding-options="findingOptions"
+                    />
                 </div>
             </div>
         </SectionCard>

@@ -14,6 +14,7 @@ use App\Services\PatientSummarizer;
 use App\Support\RopClassifier;
 use Database\Factories\VisitFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property bool|null $right_a_rop
  * @property RopType|null $right_rop_type
  * @property RopStatus|null $right_rop_status
+ * @property list<int>|null $right_findings
  * @property string|null $right_notes
  * @property PlusDisease|null $left_plus
  * @property Zone|null $left_zone
@@ -41,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property bool|null $left_a_rop
  * @property RopType|null $left_rop_type
  * @property RopStatus|null $left_rop_status
+ * @property list<int>|null $left_findings
  * @property string|null $left_notes
  * @property string|null $assessment
  * @property ManagementPlan|null $management_plan
@@ -68,8 +71,8 @@ class Visit extends Model
      */
     protected $fillable = [
         'kind', 'visit_date', 'examiner',
-        'right_plus', 'right_zone', 'right_stage', 'right_a_rop', 'right_rop_type', 'right_rop_status', 'right_notes',
-        'left_plus', 'left_zone', 'left_stage', 'left_a_rop', 'left_rop_type', 'left_rop_status', 'left_notes',
+        'right_plus', 'right_zone', 'right_stage', 'right_a_rop', 'right_rop_type', 'right_rop_status', 'right_findings', 'right_notes',
+        'left_plus', 'left_zone', 'left_stage', 'left_a_rop', 'left_rop_type', 'left_rop_status', 'left_findings', 'left_notes',
         'assessment', 'management_plan', 'management_notes', 'next_visit_date', 'fee', 'notes', 'source_reference',
     ];
 
@@ -114,6 +117,47 @@ class Visit extends Model
     public function scopeChronological(Builder $query): void
     {
         $query->orderByRaw('visit_date is null')->orderBy('visit_date')->orderBy('id');
+    }
+
+    /**
+     * Limit the query to visits on which the given eye finding is ticked for either eye.
+     *
+     * @param  Builder<Visit>  $query
+     */
+    public function scopeWithFinding(Builder $query, int $findingId): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->whereJsonContains('right_findings', $findingId)
+            ->orWhereJsonContains('left_findings', $findingId));
+    }
+
+    /**
+     * Get the ids of the eye findings ticked for the given eye.
+     *
+     * @return list<int>
+     */
+    public function eyeFindings(string $eye): array
+    {
+        /** @var list<int>|null $findings */
+        $findings = $this->getAttribute("{$eye}_findings");
+
+        return $findings ?? [];
+    }
+
+    /**
+     * Get the labels of the eye findings ticked for the given eye, in the order of the list.
+     *
+     * @return list<string>
+     */
+    public function eyeFindingLabels(string $eye): array
+    {
+        $ticked = $this->eyeFindings($eye);
+
+        return array_values(array_filter(
+            Suggestion::eyeFindingLabels(),
+            fn (int $id): bool => in_array($id, $ticked, true),
+            ARRAY_FILTER_USE_KEY,
+        ));
     }
 
     /**
@@ -184,6 +228,37 @@ class Visit extends Model
         return array_values($fees);
     }
 
+    /**
+     * Keep the ticked findings as a sorted list of ids, and an empty checklist as "not recorded".
+     *
+     * @return Attribute<list<int>|null, mixed>
+     */
+    protected function rightFindings(): Attribute
+    {
+        return Attribute::set(fn (mixed $value): ?string => self::encodeFindings($value));
+    }
+
+    /**
+     * @return Attribute<list<int>|null, mixed>
+     */
+    protected function leftFindings(): Attribute
+    {
+        return Attribute::set(fn (mixed $value): ?string => self::encodeFindings($value));
+    }
+
+    protected static function encodeFindings(mixed $value): ?string
+    {
+        $ids = collect(is_array($value) ? $value : [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $ids === [] ? null : (string) json_encode($ids);
+    }
+
     public function auditLabel(): string
     {
         return $this->patient->name.' · '.($this->visit_date?->format('Y-m-d') ?? '—');
@@ -211,12 +286,14 @@ class Visit extends Model
             'right_a_rop' => 'boolean',
             'right_rop_type' => RopType::class,
             'right_rop_status' => RopStatus::class,
+            'right_findings' => 'array',
             'left_plus' => PlusDisease::class,
             'left_zone' => Zone::class,
             'left_stage' => Stage::class,
             'left_a_rop' => 'boolean',
             'left_rop_type' => RopType::class,
             'left_rop_status' => RopStatus::class,
+            'left_findings' => 'array',
             'management_plan' => ManagementPlan::class,
         ];
     }

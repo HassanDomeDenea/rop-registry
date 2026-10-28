@@ -60,7 +60,7 @@ class PatientController extends Controller
         return Inertia::render('patients/Index', [
             'patients' => $patients,
             'filters' => $filters,
-            'trashedCount' => Patient::onlyTrashed()->count(),
+            'findingOptions' => Suggestion::eyeFindings(),
             'unverifiedCount' => Patient::query()->where('unverified', true)->count(),
         ]);
     }
@@ -178,13 +178,14 @@ class PatientController extends Controller
     /**
      * Get the pick lists of the patient form.
      *
-     * @return array{illnessOptions: list<string>, doctorOptions: list<string>}
+     * @return array{illnessOptions: list<string>, doctorOptions: list<string>, findingOptions: list<array{id: int, label: string, hidden: bool}>}
      */
     protected function suggestions(): array
     {
         return [
             'illnessOptions' => Suggestion::labels(SuggestionList::Illness),
             'doctorOptions' => Suggestion::labels(SuggestionList::ReferringDoctor),
+            'findingOptions' => Suggestion::eyeFindings(),
         ];
     }
 
@@ -391,7 +392,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
+     * @return array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}
      */
     protected function filters(Request $request): array
     {
@@ -404,6 +405,7 @@ class PatientController extends Controller
             'sex' => $request->string('sex')->toString(),
             'rop' => $request->string('rop')->toString(),
             'treatment' => $request->string('treatment')->toString(),
+            'finding' => $request->integer('finding') ?: null,
             'review' => $request->boolean('review'),
             'unverified' => $request->boolean('unverified'),
             'trashed' => $request->boolean('trashed'),
@@ -414,7 +416,7 @@ class PatientController extends Controller
     }
 
     /**
-     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
+     * @param  array{search: string, status: string, sex: string, rop: string, treatment: string, finding: int|null, review: bool, unverified: bool, trashed: bool, sort: key-of<self::NULLS_LAST>, direction: 'asc'|'desc', per_page: int}  $filters
      * @return Builder<Patient>
      */
     protected function query(array $filters): Builder
@@ -432,6 +434,7 @@ class PatientController extends Controller
             ->when($filters['treatment'] === 'laser', fn (Builder $query) => $query->where('had_laser', true))
             ->when($filters['treatment'] === 'pending', fn (Builder $query) => $query->where('treatment_pending', true))
             ->when($filters['treatment'] === 'none', fn (Builder $query) => $query->where('had_injection', false)->where('had_laser', false))
+            ->when($filters['finding'] !== null, fn (Builder $query) => $query->whereHas('visits', fn (Builder $query) => $query->withFinding($filters['finding'])))
             ->when($filters['unverified'], fn (Builder $query) => $query->where('unverified', true))
             ->when($filters['review'], fn (Builder $query) => $query->whereHas('reviewItems', fn (Builder $query) => $query->whereNull('resolved_at')))
             ->orderByRaw(self::NULLS_LAST[$filters['sort']])

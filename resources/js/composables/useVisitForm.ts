@@ -3,6 +3,7 @@ import { EYE_FIELDS } from '@/lib/rop';
 import { todayIso } from '@/lib/utils';
 import type { Eye, Visit } from '@/types';
 
+/** The findings checklist of each eye is a list of ids; every other field is one value. */
 export type VisitFormData = Record<string, string | number | boolean | null>;
 
 /**

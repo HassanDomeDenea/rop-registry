@@ -1,72 +1,29 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { CornerDownLeft, Search } from '@lucide/vue';
-import { useDebounceFn } from '@vueuse/core';
 import { ref } from 'vue';
-import { Spinner } from '@/components/ui/spinner';
+import PatientLookupResults from '@/components/registry/PatientLookupResults.vue';
 import { useI18n } from '@/composables/useI18n';
+import { usePatientLookup } from '@/composables/usePatientLookup';
+import type { PatientMatch } from '@/composables/usePatientLookup';
 import patientRoutes from '@/routes/patients';
 
 /**
  * The search box of the top bar: matching patients appear while typing,
  * Enter opens the full patient list filtered by the same text.
  */
-type Match = {
-    id: number;
-    name: string;
-    file_number: string | null;
-    dob: string | null;
-    phone: string | null;
-    unverified: boolean;
-};
-
-const { t, formatDate } = useI18n();
+const { t } = useI18n();
 
 const search = ref('');
 const open = ref(false);
-const loading = ref(false);
-const matches = ref<Match[]>([]);
-const total = ref(0);
 const active = ref(-1);
 
-let latest = 0;
-
-const lookup = useDebounceFn(async () => {
-    const term = search.value.trim();
-    const request = ++latest;
-
-    if (term === '') {
-        matches.value = [];
-        total.value = 0;
-        loading.value = false;
-
-        return;
-    }
-
-    const response = await fetch(
-        patientRoutes.lookup.url({ query: { search: term } }),
-        { headers: { Accept: 'application/json' } },
-    );
-
-    // A slower, older answer must not replace a newer one.
-    if (request !== latest) {
-        return;
-    }
-
-    const result = response.ok
-        ? ((await response.json()) as { total: number; patients: Match[] })
-        : { total: 0, patients: [] };
-
-    matches.value = result.patients;
-    total.value = result.total;
-    loading.value = false;
-}, 250);
+const { loading, matches, total, lookup, clear } = usePatientLookup();
 
 function onInput() {
     open.value = true;
     active.value = -1;
-    loading.value = search.value.trim() !== '';
-    void lookup();
+    lookup(search.value);
 }
 
 function close() {
@@ -74,10 +31,10 @@ function close() {
     active.value = -1;
 }
 
-function visit(match: Match) {
+function visit(match: PatientMatch) {
     close();
     search.value = '';
-    matches.value = [];
+    clear();
     router.get(patientRoutes.show.url(match.id));
 }
 
@@ -130,52 +87,12 @@ function move(step: number) {
             class="absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-lg border bg-popover text-sm text-popover-foreground shadow-lg"
             @mousedown.prevent
         >
-            <p
-                v-if="loading && matches.length === 0"
-                class="flex items-center gap-2 px-3 py-3 text-muted-foreground"
-            >
-                <Spinner />
-                {{ t('Searching…') }}
-            </p>
-            <p
-                v-else-if="matches.length === 0"
-                class="px-3 py-3 text-muted-foreground"
-            >
-                {{ t('No patient matches') }}
-            </p>
-            <ul v-else class="max-h-96 overflow-auto p-1" role="listbox">
-                <li
-                    v-for="(match, index) in matches"
-                    :key="match.id"
-                    role="option"
-                    :aria-selected="index === active"
-                    class="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
-                    :class="index === active ? 'bg-accent' : 'hover:bg-muted'"
-                    @mousemove="active = index"
-                    @click="visit(match)"
-                >
-                    <span class="min-w-0">
-                        <span class="block truncate font-medium">
-                            <bdi>{{ match.name }}</bdi>
-                        </span>
-                        <span class="block text-xs text-muted-foreground">
-                            {{ formatDate(match.dob) }}
-                            <template v-if="match.phone">
-                                · <bdi dir="ltr">{{ match.phone }}</bdi>
-                            </template>
-                            <template v-if="match.unverified">
-                                · {{ t('Unverified') }}
-                            </template>
-                        </span>
-                    </span>
-                    <span
-                        v-if="match.file_number"
-                        class="shrink-0 text-xs text-muted-foreground tabular-nums"
-                    >
-                        #{{ match.file_number }}
-                    </span>
-                </li>
-            </ul>
+            <PatientLookupResults
+                v-model:active="active"
+                :matches="matches"
+                :loading="loading"
+                @select="visit"
+            />
             <button
                 v-if="matches.length"
                 type="submit"

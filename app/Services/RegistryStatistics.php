@@ -14,6 +14,7 @@ use App\Enums\Stage;
 use App\Enums\TreatmentType;
 use App\Enums\Zone;
 use App\Models\Patient;
+use App\Models\Suggestion;
 use App\Models\Treatment;
 use App\Models\Visit;
 use BackedEnum;
@@ -78,6 +79,7 @@ class RegistryStatistics
             'charts' => [
                 ...$this->demographicCharts($patients),
                 ...$this->ropCharts($patients, $eyes),
+                ...$this->findingCharts($patients),
                 ...$this->treatmentCharts($patients, $visits, $treatments),
             ],
             'crosstabs' => [
@@ -293,6 +295,52 @@ class RegistryStatistics
             'eye_zone' => $this->enumChart($this->text('Most posterior zone per affected eye'), $affected->pluck('zone'), [Zone::ZoneOne, Zone::PosteriorZoneTwo, Zone::ZoneTwo, Zone::ZoneThree], $this->text('eyes')),
             'eye_plus' => $this->enumChart($this->text('Worst plus status per eye'), $eyes->pluck('plus'), [PlusDisease::None, PlusDisease::PrePlus, PlusDisease::Plus], $this->text('eyes')),
             'laterality' => $this->chart($this->text('Laterality among patients with ROP'), $this->text('patients'), $patients->where('any_rop', true)->count(), 0, $this->laterality($patients)),
+        ];
+    }
+
+    /**
+     * Patients and eyes with each finding of the eye findings list ticked at one visit or more.
+     * A finding that was not ticked is not recorded, which is not the same as absent.
+     *
+     * @param  Collection<int, Patient>  $patients
+     * @return array<string, array<string, mixed>>
+     */
+    protected function findingCharts(Collection $patients): array
+    {
+        $patientItems = [];
+        $eyeItems = [];
+
+        foreach (Suggestion::eyeFindings() as $finding) {
+            $eyes = 0;
+            $withFinding = 0;
+
+            foreach ($patients as $patient) {
+                $affected = collect(Visit::EYES)
+                    ->filter(fn (string $eye): bool => $patient->visits->contains(
+                        fn (Visit $visit): bool => in_array($finding['id'], $visit->eyeFindings($eye), true),
+                    ))
+                    ->count();
+
+                $eyes += $affected;
+                $withFinding += $affected > 0 ? 1 : 0;
+            }
+
+            // A hidden entry is listed only while visits of the cohort still hold it.
+            if ($finding['hidden'] && $withFinding === 0) {
+                continue;
+            }
+
+            $patientItems[] = ['label' => $finding['label'], 'value' => $withFinding];
+            $eyeItems[] = ['label' => $finding['label'], 'value' => $eyes];
+        }
+
+        if ($patientItems === []) {
+            return [];
+        }
+
+        return [
+            'finding_patients' => $this->chart($this->text('Patients with each eye finding'), $this->text('patients'), $patients->count(), 0, $patientItems),
+            'finding_eyes' => $this->chart($this->text('Eyes with each eye finding'), $this->text('eyes'), $patients->count() * 2, 0, $eyeItems),
         ];
     }
 

@@ -53,6 +53,11 @@ export function useUnsavedChanges(isDirty: () => boolean) {
         saving = false;
     }
 
+    /** Let the next visit leave without asking, when nothing worth keeping would be lost. */
+    function allowLeaving() {
+        saving = true;
+    }
+
     /** Leave without saving, to where the administrator was going. */
     function leave() {
         saving = true;
@@ -60,5 +65,5 @@ export function useUnsavedChanges(isDirty: () => boolean) {
         pending?.();
     }
 
-    return { confirming, startSaving, stopSaving, leave };
+    return { confirming, startSaving, stopSaving, allowLeaving, leave };
 }

@@ -103,6 +103,10 @@ const sections = computed(() => [
         ],
     },
     {
+        title: t('Other eye findings'),
+        charts: ['finding_patients', 'finding_eyes'],
+    },
+    {
         title: t('Management and treatment'),
         charts: [
             'treated_patients',

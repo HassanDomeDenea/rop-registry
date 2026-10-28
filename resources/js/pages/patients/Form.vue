@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     Baby,
     HeartPulse,
@@ -16,8 +16,10 @@ import { computed, ref, watch } from 'vue';
 import CheckList from '@/components/registry/CheckList.vue';
 import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
+import FormSaveBar from '@/components/registry/FormSaveBar.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
+import PatientLookupResults from '@/components/registry/PatientLookupResults.vue';
 import PatientPanel from '@/components/registry/PatientPanel.vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
@@ -31,12 +33,20 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
+import { usePatientLookup } from '@/composables/usePatientLookup';
+import type { PatientMatch } from '@/composables/usePatientLookup';
 import { usePatientPanel } from '@/composables/usePatientPanel';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useVisitForm } from '@/composables/useVisitForm';
 import { daysBetween, todayIso } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
-import type { Attachment, Patient, Treatment, Visit } from '@/types';
+import type {
+    Attachment,
+    FindingOption,
+    Patient,
+    Treatment,
+    Visit,
+} from '@/types';
 
 const props = defineProps<{
     patient: Patient | null;
@@ -48,6 +58,7 @@ const props = defineProps<{
     attachments?: Attachment[];
     illnessOptions: string[];
     doctorOptions: string[];
+    findingOptions: FindingOption[];
 }>();
 
 const { t, enumOptions, formatWeeks, formatAge, formatDate } = useI18n();
@@ -302,14 +313,93 @@ const { panel, show: showPanel, toggle: togglePanel } = usePatientPanel();
 
 const savedIllnesses = JSON.stringify(illnesses.value);
 
-const isDirty = computed(
+const dataBesidesName = () => JSON.stringify({ ...form.data(), name: null });
+
+const savedBesidesName = dataBesidesName();
+
+/** Whether anything besides the name was typed, which opening another patient would lose. */
+const isDirtyBesidesName = computed(
     () =>
-        form.isDirty ||
+        dataBesidesName() !== savedBesidesName ||
         JSON.stringify(illnesses.value) !== savedIllnesses ||
         (withVisit.value && visitForm.isDirty),
 );
 
+const isDirty = computed(() => form.isDirty || isDirtyBesidesName.value);
+
 const unsaved = useUnsavedChanges(() => isDirty.value);
+
+/**
+ * While a new patient is named, the patients already registered under that name are
+ * offered, to open the existing record instead of registering the baby twice.
+ */
+const nameLookup = usePatientLookup();
+const nameLookupOpen = ref(false);
+const nameLookupActive = ref(-1);
+
+watch(
+    () => form.name,
+    (name) => {
+        if (props.patient) {
+            return;
+        }
+
+        nameLookupOpen.value = true;
+        nameLookupActive.value = -1;
+        nameLookup.lookup(String(name ?? ''));
+    },
+);
+
+const showNameLookup = computed(
+    () =>
+        !props.patient &&
+        nameLookupOpen.value &&
+        String(form.name ?? '').trim() !== '' &&
+        nameLookup.matches.value.length > 0,
+);
+
+function closeNameLookup() {
+    nameLookupOpen.value = false;
+    nameLookupActive.value = -1;
+}
+
+/** The arrow keys move through the patients offered, and the cursor otherwise. */
+function moveNameLookup(event: KeyboardEvent, step: number) {
+    const count = nameLookup.matches.value.length;
+
+    if (!showNameLookup.value || count === 0) {
+        return;
+    }
+
+    event.preventDefault();
+    nameLookupActive.value = (nameLookupActive.value + step + count) % count;
+}
+
+/** Enter opens the highlighted patient, and saves the form otherwise. */
+function chooseNameLookup(event: KeyboardEvent) {
+    const match = showNameLookup.value
+        ? nameLookup.matches.value[nameLookupActive.value]
+        : undefined;
+
+    if (match) {
+        event.preventDefault();
+        openExisting(match);
+    }
+}
+
+/**
+ * Open a registered patient instead: a form holding only the name is left without
+ * asking, anything else typed is confirmed first, as when leaving by any other way.
+ */
+function openExisting(match: PatientMatch) {
+    closeNameLookup();
+
+    if (!isDirtyBesidesName.value) {
+        unsaved.allowLeaving();
+    }
+
+    router.get(patientRoutes.show.url(match.id));
+}
 
 function submit() {
     const options = { onError: unsaved.stopSaving };
@@ -444,13 +534,47 @@ function submit() {
                                 :error="form.errors.name"
                                 required
                             >
-                                <TextInput
-                                    id="name"
-                                    v-model="form.name"
-                                    v-focus="!patient"
-                                    dir="auto"
-                                    required
-                                />
+                                <div class="relative">
+                                    <TextInput
+                                        id="name"
+                                        v-model="form.name"
+                                        v-focus="!patient"
+                                        dir="auto"
+                                        :autocomplete="
+                                            patient ? undefined : 'off'
+                                        "
+                                        required
+                                        @focus="nameLookupOpen = true"
+                                        @blur="closeNameLookup"
+                                        @keydown.down="
+                                            moveNameLookup($event, 1)
+                                        "
+                                        @keydown.up="moveNameLookup($event, -1)"
+                                        @keydown.esc="closeNameLookup"
+                                        @keydown.enter="chooseNameLookup"
+                                    />
+                                    <div
+                                        v-if="showNameLookup"
+                                        class="absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-lg border bg-popover text-sm text-popover-foreground shadow-lg"
+                                        @mousedown.prevent
+                                    >
+                                        <p
+                                            class="border-b bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
+                                        >
+                                            {{
+                                                t(
+                                                    'Already registered: open the record instead?',
+                                                )
+                                            }}
+                                        </p>
+                                        <PatientLookupResults
+                                            v-model:active="nameLookupActive"
+                                            :matches="nameLookup.matches.value"
+                                            :loading="nameLookup.loading.value"
+                                            @select="openExisting"
+                                        />
+                                    </div>
+                                </div>
                             </FormField>
                             <FormField
                                 class="col-span-2"
@@ -830,6 +954,7 @@ function submit() {
                     :form="visitForm"
                     :errors="visitErrors"
                     :common-fees="commonFees"
+                    :finding-options="findingOptions"
                     :date-hint="examinationHint"
                 />
                 <VisitCard
@@ -840,6 +965,13 @@ function submit() {
                     readonly
                 />
             </section>
+
+            <FormSaveBar
+                :label="patient ? t('Save changes') : t('Register patient')"
+                :cancel-href="backHref"
+                :processing="form.processing"
+                :dirty="isDirty"
+            />
         </form>
 
         <PatientPanel

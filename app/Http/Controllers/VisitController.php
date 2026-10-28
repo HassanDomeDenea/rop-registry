@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VisitRequest;
 use App\Models\Patient;
+use App\Models\Suggestion;
 use App\Models\Visit;
 use App\Support\RegistryPresenter;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,7 @@ class VisitController extends Controller
             'previous' => $this->previousVisit($patient),
             'visitNumber' => $patient->visits()->count() + 1,
             'commonFees' => Visit::commonFees(),
+            'findingOptions' => Suggestion::eyeFindings(),
             ...RegistryPresenter::records($patient),
         ]);
     }
@@ -50,6 +52,7 @@ class VisitController extends Controller
             'previous' => null,
             'visitNumber' => $this->visitNumber($patient, $visit),
             'commonFees' => Visit::commonFees(),
+            'findingOptions' => Suggestion::eyeFindings(),
             ...RegistryPresenter::records($patient),
         ]);
     }

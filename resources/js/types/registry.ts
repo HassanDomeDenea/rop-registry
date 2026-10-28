@@ -98,6 +98,16 @@ export type EyeFindings = {
 } & {
     right_a_rop: boolean | null;
     left_a_rop: boolean | null;
+    /** Ids of the entries ticked from the eye findings list. */
+    right_findings: number[] | null;
+    left_findings: number[] | null;
+};
+
+/** An entry of the eye findings list; a hidden one is offered only where it is already ticked. */
+export type FindingOption = {
+    id: number;
+    label: string;
+    hidden: boolean;
 };
 
 export type Visit = EyeFindings & {
@@ -117,6 +127,8 @@ export type Visit = EyeFindings & {
     age_days: number | null;
     right_suggested_type: string | null;
     left_suggested_type: string | null;
+    right_finding_labels: string[];
+    left_finding_labels: string[];
 };
 
 export type Treatment = {

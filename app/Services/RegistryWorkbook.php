@@ -193,7 +193,8 @@ class RegistryWorkbook
 
         $eye = fn (string $side): array => array_map(fn (string $column): string => $side.' · '.$column, [
             $this->text('Plus disease'), $this->text('Zone'), $this->text('Stage'),
-            $this->text('A-ROP (aggressive)'), $this->text('Type of ROP'), $this->text('ROP status'), $this->text('Notes'),
+            $this->text('A-ROP (aggressive)'), $this->text('Type of ROP'), $this->text('ROP status'), $this->text('Eye findings'),
+            $this->text('Notes'),
         ]);
 
         $headings = [
@@ -240,6 +241,7 @@ class RegistryWorkbook
             $aggressive === null ? null : $this->yesNo($aggressive),
             $visit->eyeRopType($eye)?->label(),
             ($isRight ? $visit->right_rop_status : $visit->left_rop_status)?->label(),
+            implode('; ', $visit->eyeFindingLabels($eye)) ?: null,
             $isRight ? $visit->right_notes : $visit->left_notes,
         ];
     }

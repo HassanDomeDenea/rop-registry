@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Images, PanelRight } from '@lucide/vue';
 import { computed } from 'vue';
+import FormSaveBar from '@/components/registry/FormSaveBar.vue';
 import PageHeader from '@/components/registry/PageHeader.vue';
 import PatientPanel from '@/components/registry/PatientPanel.vue';
 import UnsavedChanges from '@/components/registry/UnsavedChanges.vue';
@@ -14,7 +15,13 @@ import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useVisitForm } from '@/composables/useVisitForm';
 import { daysBetween } from '@/lib/utils';
 import patientRoutes from '@/routes/patients';
-import type { Attachment, Patient, Treatment, Visit } from '@/types';
+import type {
+    Attachment,
+    FindingOption,
+    Patient,
+    Treatment,
+    Visit,
+} from '@/types';
 
 const props = defineProps<{
     patient: Patient;
@@ -22,6 +29,7 @@ const props = defineProps<{
     previous: Visit | null;
     visitNumber: number;
     commonFees: number[];
+    findingOptions: FindingOption[];
     visits: Visit[];
     treatments: Treatment[];
     attachments: Attachment[];
@@ -204,6 +212,14 @@ function submit() {
                 :errors="form.errors"
                 :previous="previous"
                 :common-fees="commonFees"
+                :finding-options="findingOptions"
+            />
+
+            <FormSaveBar
+                :label="visit ? t('Save changes') : t('Save visit')"
+                :cancel-href="backHref"
+                :processing="form.processing"
+                :dirty="form.isDirty"
             />
         </form>
 

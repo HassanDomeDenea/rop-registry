@@ -55,6 +55,10 @@ const type = computed(
 
 const details = computed(() => [value('notes')].filter(Boolean));
 
+const findings = computed(
+    () => props.visit[`${props.eye}_finding_labels`] ?? [],
+);
+
 const isEmpty = computed(
     () =>
         !value('rop_status') &&
@@ -63,6 +67,7 @@ const isEmpty = computed(
         !value('plus') &&
         value('a_rop') === null &&
         !type.value &&
+        findings.value.length === 0 &&
         details.value.length === 0,
 );
 </script>
@@ -94,6 +99,14 @@ const isEmpty = computed(
             <Pill v-if="value('a_rop') === true" tone="danger">A-ROP</Pill>
             <Pill v-if="type" :tone="type === 'type_1' ? 'danger' : 'warning'">
                 {{ enumLabel('rop_type', type as string) }}
+            </Pill>
+            <Pill
+                v-for="finding in findings"
+                :key="finding"
+                tone="info"
+                dir="auto"
+            >
+                {{ finding }}
             </Pill>
         </div>
         <p

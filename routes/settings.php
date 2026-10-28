@@ -16,6 +16,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('settings/lists', [SuggestionController::class, 'store'])->name('lists.store');
     Route::put('settings/lists/{suggestion}', [SuggestionController::class, 'update'])->name('lists.update');
     Route::delete('settings/lists/{suggestion}', [SuggestionController::class, 'destroy'])->name('lists.destroy');
+    Route::put('settings/lists/{suggestion}/visibility', [SuggestionController::class, 'visibility'])->name('lists.visibility');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

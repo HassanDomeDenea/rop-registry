@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Enums\PatientStatus;
 use App\Models\Patient;
+use App\Models\Suggestion;
 use App\Models\Treatment;
 use App\Models\Visit;
 use App\Services\ReminderService;
 use App\Support\RegistryPresenter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,6 +41,28 @@ class DashboardController extends Controller
             'treatmentPending' => $reminders->treatmentPending()->limit(8)->get()->map($present),
             'injectionSurveillance' => $reminders->injectionSurveillance()->limit(8)->get()->map($present),
             'recent' => Patient::query()->latest('id')->limit(6)->get()->map($present),
+            'findings' => $this->findings(),
         ]);
+    }
+
+    /**
+     * Count the confirmed patients with each eye finding ticked at one visit or more.
+     *
+     * @return list<array{id: int, label: string, patients: int}>
+     */
+    protected function findings(): array
+    {
+        return collect(Suggestion::eyeFindings())
+            ->map(fn (array $finding): array => [
+                'id' => $finding['id'],
+                'label' => $finding['label'],
+                'patients' => Patient::query()
+                    ->verified()
+                    ->whereHas('visits', fn (Builder $query) => $query->withFinding($finding['id']))
+                    ->count(),
+            ])
+            ->filter(fn (array $finding): bool => $finding['patients'] > 0)
+            ->values()
+            ->all();
     }
 }

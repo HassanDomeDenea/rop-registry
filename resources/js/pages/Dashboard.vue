@@ -7,6 +7,7 @@ import {
     CalendarClock,
     CalendarX,
     Eye,
+    ScanEye,
     Syringe,
     UserPlus,
     Users,
@@ -39,6 +40,8 @@ defineProps<{
     treatmentPending: PatientRow[];
     injectionSurveillance: PatientRow[];
     recent: PatientRow[];
+    /** Confirmed patients with each eye finding ticked at one visit or more. */
+    findings: { id: number; label: string; patients: number }[];
 }>();
 
 const { t, formatDate, formatRelativeDays, formatNumber } = useI18n();
@@ -201,6 +204,29 @@ const todayLabel = formatDate(todayIso());
             </PatientList>
         </SectionCard>
     </div>
+
+    <SectionCard
+        v-if="findings.length"
+        :title="t('Other eye findings')"
+        :description="
+            t('Confirmed patients with the finding ticked at a visit')
+        "
+        :icon="ScanEye"
+    >
+        <div class="flex flex-wrap gap-2">
+            <Link
+                v-for="finding in findings"
+                :key="finding.id"
+                :href="patients.index({ query: { finding: finding.id } })"
+                class="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+                <span dir="auto">{{ finding.label }}</span>
+                <span class="font-semibold tabular-nums">
+                    {{ formatNumber(finding.patients) }}
+                </span>
+            </Link>
+        </div>
+    </SectionCard>
 
     <SectionCard :title="t('Recently added patients')" :icon="Users" flush>
         <template #actions>
