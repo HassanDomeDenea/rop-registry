@@ -100,7 +100,12 @@ const allColumns = computed<Column[]>(() => [
         sortable: true,
         class: 'w-20 tabular-nums text-muted-foreground',
     },
-    { key: 'name', label: t('Patient'), sortable: true },
+    {
+        key: 'name',
+        label: t('Patient'),
+        sortable: true,
+        class: 'max-md:min-w-40',
+    },
     {
         key: 'dob',
         label: t('Born'),
@@ -438,7 +443,9 @@ function applyDoctor() {
 
     <section class="rounded-xl border bg-card shadow-xs">
         <div class="no-print flex flex-wrap items-center gap-2 border-b p-3">
-            <div class="relative min-w-64 flex-1">
+            <div
+                class="relative min-w-64 flex-1 max-md:min-w-0 max-md:basis-full"
+            >
                 <Search
                     class="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 />
@@ -455,28 +462,28 @@ function applyDoctor() {
                 />
             </div>
             <NativeSelect
-                class="w-44"
+                class="w-44 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.status || null"
                 :options="enumOptions('patient_status')"
                 :placeholder="t('Any status')"
                 @update:model-value="setFilter('status', $event as string)"
             />
             <NativeSelect
-                class="w-32"
+                class="w-32 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.sex || null"
                 :options="enumOptions('sex')"
                 :placeholder="t('Any sex')"
                 @update:model-value="setFilter('sex', $event as string)"
             />
             <NativeSelect
-                class="w-48"
+                class="w-48 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.rop || null"
                 :options="ropOptions"
                 :placeholder="t('Any ROP status')"
                 @update:model-value="setFilter('rop', $event as string)"
             />
             <NativeSelect
-                class="w-48"
+                class="w-48 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.treatment || null"
                 :options="treatmentOptions"
                 :placeholder="t('Any treatment')"
@@ -493,7 +500,7 @@ function applyDoctor() {
                 @update:model-value="setFinding"
             />
             <NativeSelect
-                class="w-52"
+                class="w-52 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.doctor || null"
                 :options="doctorSelectOptions"
                 :placeholder="t('Any referring doctor')"
@@ -706,7 +713,7 @@ function applyDoctor() {
             <div class="flex items-center gap-2 border-t px-4 py-3 text-sm">
                 <span class="text-muted-foreground">{{ t('Rows') }}</span>
                 <NativeSelect
-                    class="w-20"
+                    class="w-20 max-md:w-[calc(50%-0.25rem)]"
                     size="sm"
                     :nullable="false"
                     :model-value="state.per_page"

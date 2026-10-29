@@ -134,141 +134,143 @@ function remove(suggestion: Suggestion) {
         :icon="ListChecks"
         flush
     >
-        <table class="w-full text-sm">
-            <tbody>
-                <tr
-                    v-for="(suggestion, index) in entries(list.value)"
-                    :key="suggestion.id"
-                    class="border-b"
-                    :class="{ 'text-muted-foreground': suggestion.hidden }"
-                >
-                    <td
-                        class="w-12 px-5 py-2 text-xs text-muted-foreground tabular-nums"
+        <div class="max-md:overflow-x-auto">
+            <table class="w-full text-sm">
+                <tbody>
+                    <tr
+                        v-for="(suggestion, index) in entries(list.value)"
+                        :key="suggestion.id"
+                        class="border-b"
+                        :class="{ 'text-muted-foreground': suggestion.hidden }"
                     >
-                        {{ index + 1 }}
-                    </td>
-                    <td class="py-1.5">
-                        <form
-                            v-if="editing?.id === suggestion.id"
-                            @submit.prevent="save(list.value)"
+                        <td
+                            class="w-12 px-5 py-2 text-xs text-muted-foreground tabular-nums"
                         >
-                            <TextInput
-                                v-model="editing.label"
-                                v-focus
-                                dir="auto"
-                                class="h-8"
-                                @keydown.esc="editing = null"
-                            />
-                        </form>
-                        <span v-else class="flex items-center gap-2">
-                            <span dir="auto">{{ suggestion.label }}</span>
-                            <span
-                                v-if="suggestion.hidden"
-                                class="rounded bg-muted px-1.5 py-0.5 text-xs"
+                            {{ index + 1 }}
+                        </td>
+                        <td class="py-1.5">
+                            <form
+                                v-if="editing?.id === suggestion.id"
+                                @submit.prevent="save(list.value)"
                             >
-                                {{ t('Hidden from the form') }}
+                                <TextInput
+                                    v-model="editing.label"
+                                    v-focus
+                                    dir="auto"
+                                    class="h-8"
+                                    @keydown.esc="editing = null"
+                                />
+                            </form>
+                            <span v-else class="flex items-center gap-2">
+                                <span dir="auto">{{ suggestion.label }}</span>
+                                <span
+                                    v-if="suggestion.hidden"
+                                    class="rounded bg-muted px-1.5 py-0.5 text-xs"
+                                >
+                                    {{ t('Hidden from the form') }}
+                                </span>
+                                <span
+                                    v-if="suggestion.patients_count !== null"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{
+                                        t(':count patients', {
+                                            count: suggestion.patients_count,
+                                        })
+                                    }}
+                                </span>
+                                <span
+                                    v-if="suggestion.visits_count"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{
+                                        t(':count visits', {
+                                            count: suggestion.visits_count,
+                                        })
+                                    }}
+                                </span>
                             </span>
-                            <span
-                                v-if="suggestion.patients_count !== null"
-                                class="text-xs text-muted-foreground"
-                            >
-                                {{
-                                    t(':count patients', {
-                                        count: suggestion.patients_count,
-                                    })
-                                }}
-                            </span>
-                            <span
-                                v-if="suggestion.visits_count"
-                                class="text-xs text-muted-foreground"
-                            >
-                                {{
-                                    t(':count visits', {
-                                        count: suggestion.visits_count,
-                                    })
-                                }}
-                            </span>
-                        </span>
-                    </td>
-                    <td class="w-24 px-3 py-1.5 text-end whitespace-nowrap">
-                        <template v-if="editing?.id === suggestion.id">
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                :title="t('Save')"
-                                @click="save(list.value)"
-                            >
-                                <Check />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                :title="t('Cancel')"
-                                @click="editing = null"
-                            >
-                                <X />
-                            </Button>
-                        </template>
-                        <template v-else>
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                :title="t('Edit')"
-                                @click="
-                                    editing = {
-                                        id: suggestion.id,
-                                        label: suggestion.label,
-                                    }
-                                "
-                            >
-                                <Pencil />
-                            </Button>
-                            <Button
-                                v-if="suggestion.hidden"
-                                variant="ghost"
-                                size="icon-sm"
-                                :title="t('Offer on the form again')"
-                                @click="setHidden(suggestion, false)"
-                            >
-                                <Eye />
-                            </Button>
-                            <Button
-                                v-else-if="suggestion.visits_count"
-                                variant="ghost"
-                                size="icon-sm"
-                                class="text-muted-foreground"
-                                :title="
-                                    t(
-                                        'Hide from the form. Visits that recorded it keep it.',
-                                    )
-                                "
-                                @click="setHidden(suggestion, true)"
-                            >
-                                <EyeOff />
-                            </Button>
-                            <Button
-                                v-else
-                                variant="ghost"
-                                size="icon-sm"
-                                class="text-muted-foreground hover:text-destructive"
-                                :title="t('Delete')"
-                                @click="remove(suggestion)"
-                            >
-                                <Trash2 />
-                            </Button>
-                        </template>
-                    </td>
-                </tr>
-                <tr v-if="entries(list.value).length === 0">
-                    <td
-                        colspan="3"
-                        class="border-b px-5 py-6 text-center text-muted-foreground"
-                    >
-                        {{ t('This list is empty') }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                        </td>
+                        <td class="w-24 px-3 py-1.5 text-end whitespace-nowrap">
+                            <template v-if="editing?.id === suggestion.id">
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    :title="t('Save')"
+                                    @click="save(list.value)"
+                                >
+                                    <Check />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    :title="t('Cancel')"
+                                    @click="editing = null"
+                                >
+                                    <X />
+                                </Button>
+                            </template>
+                            <template v-else>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    :title="t('Edit')"
+                                    @click="
+                                        editing = {
+                                            id: suggestion.id,
+                                            label: suggestion.label,
+                                        }
+                                    "
+                                >
+                                    <Pencil />
+                                </Button>
+                                <Button
+                                    v-if="suggestion.hidden"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    :title="t('Offer on the form again')"
+                                    @click="setHidden(suggestion, false)"
+                                >
+                                    <Eye />
+                                </Button>
+                                <Button
+                                    v-else-if="suggestion.visits_count"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    class="text-muted-foreground"
+                                    :title="
+                                        t(
+                                            'Hide from the form. Visits that recorded it keep it.',
+                                        )
+                                    "
+                                    @click="setHidden(suggestion, true)"
+                                >
+                                    <EyeOff />
+                                </Button>
+                                <Button
+                                    v-else
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    class="text-muted-foreground hover:text-destructive"
+                                    :title="t('Delete')"
+                                    @click="remove(suggestion)"
+                                >
+                                    <Trash2 />
+                                </Button>
+                            </template>
+                        </td>
+                    </tr>
+                    <tr v-if="entries(list.value).length === 0">
+                        <td
+                            colspan="3"
+                            class="border-b px-5 py-6 text-center text-muted-foreground"
+                        >
+                            {{ t('This list is empty') }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <form class="px-5 py-3" @submit.prevent="add(list.value)">
             <div class="flex items-center gap-2">

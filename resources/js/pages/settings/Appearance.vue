@@ -164,7 +164,7 @@ function changeLocale(code: string) {
         "
         :icon="Printer"
     >
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
             <button
                 v-for="language in printLanguages"
                 :key="language.code ?? 'interface'"

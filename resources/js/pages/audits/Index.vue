@@ -65,7 +65,7 @@ const reloadDebounced = useDebounceFn(reload, 300);
     />
 
     <div class="flex flex-wrap items-center gap-2">
-        <div class="relative min-w-64 flex-1">
+        <div class="relative min-w-64 flex-1 max-md:min-w-0 max-md:basis-full">
             <Search
                 class="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             />
@@ -79,14 +79,14 @@ const reloadDebounced = useDebounceFn(reload, 300);
         </div>
         <NativeSelect
             v-model="state.event"
-            class="w-44 bg-card"
+            class="w-44 bg-card max-md:w-[calc(50%-0.25rem)]"
             :options="events"
             :placeholder="t('Any action')"
             @update:model-value="reload"
         />
         <NativeSelect
             v-model="state.type"
-            class="w-44 bg-card"
+            class="w-44 bg-card max-md:w-[calc(50%-0.25rem)]"
             :options="types"
             :placeholder="t('Any record')"
             @update:model-value="reload"

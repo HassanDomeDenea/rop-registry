@@ -44,7 +44,7 @@ const amounts = useShowMore(() => props.fees.amounts.length);
             {{ t('Visit fees') }}
         </h2>
 
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <StatCard
                 :label="t('Fees recorded (IQD)')"
                 :value="formatNumber(fees.total)"
@@ -74,7 +74,7 @@ const amounts = useShowMore(() => props.fees.amounts.length);
             />
         </div>
 
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid gap-6 md:grid-cols-2">
             <section class="rounded-xl border bg-card shadow-xs">
                 <header class="border-b px-5 py-3.5">
                     <h3 class="text-sm font-semibold">
@@ -84,71 +84,77 @@ const amounts = useShowMore(() => props.fees.amounts.length);
                         {{ t('Each amount charged, most frequent first') }}
                     </p>
                 </header>
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr
-                            class="border-b bg-muted/40 text-xs text-muted-foreground"
-                        >
-                            <th class="px-5 py-2 text-start font-medium">
-                                {{ t('Fee (IQD)') }}
-                            </th>
-                            <th class="px-3 py-2 text-start font-medium">
-                                {{ t('Visits') }}
-                            </th>
-                            <th class="px-5 py-2 text-end font-medium">
-                                {{ t('Total (IQD)') }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="(amount, index) in fees.amounts"
-                            :key="amount.fee"
-                            class="border-b tabular-nums last:border-b-0"
-                            :class="{
-                                'hidden print:table-row':
-                                    amounts.isFolded(index),
-                            }"
-                        >
-                            <td class="px-5 py-2.5 font-medium">
-                                {{
-                                    amount.fee === 0
-                                        ? t('Free')
-                                        : formatNumber(amount.fee)
-                                }}
-                            </td>
-                            <td class="px-3 py-2.5">
-                                <div class="flex items-center gap-2">
-                                    <span class="flex h-2 w-24 rounded-full">
-                                        <span
-                                            class="h-full min-w-px rounded-full bg-series-1"
-                                            :style="{
-                                                width: `${(amount.visits / busiest) * 100}%`,
-                                            }"
-                                        />
-                                    </span>
-                                    <span>{{
-                                        formatNumber(amount.visits)
-                                    }}</span>
-                                    <span class="text-xs text-muted-foreground">
-                                        {{ share(amount.visits) }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-5 py-2.5 text-end">
-                                {{ formatNumber(amount.total) }}
-                            </td>
-                        </tr>
-                        <tr v-if="fees.amounts.length === 0">
-                            <td
-                                colspan="3"
-                                class="px-5 py-6 text-center text-muted-foreground"
+                <div class="max-md:overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr
+                                class="border-b bg-muted/40 text-xs text-muted-foreground"
                             >
-                                {{ t('No data recorded') }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <th class="px-5 py-2 text-start font-medium">
+                                    {{ t('Fee (IQD)') }}
+                                </th>
+                                <th class="px-3 py-2 text-start font-medium">
+                                    {{ t('Visits') }}
+                                </th>
+                                <th class="px-5 py-2 text-end font-medium">
+                                    {{ t('Total (IQD)') }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(amount, index) in fees.amounts"
+                                :key="amount.fee"
+                                class="border-b tabular-nums last:border-b-0"
+                                :class="{
+                                    'hidden print:table-row':
+                                        amounts.isFolded(index),
+                                }"
+                            >
+                                <td class="px-5 py-2.5 font-medium">
+                                    {{
+                                        amount.fee === 0
+                                            ? t('Free')
+                                            : formatNumber(amount.fee)
+                                    }}
+                                </td>
+                                <td class="px-3 py-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="flex h-2 w-24 rounded-full"
+                                        >
+                                            <span
+                                                class="h-full min-w-px rounded-full bg-series-1"
+                                                :style="{
+                                                    width: `${(amount.visits / busiest) * 100}%`,
+                                                }"
+                                            />
+                                        </span>
+                                        <span>{{
+                                            formatNumber(amount.visits)
+                                        }}</span>
+                                        <span
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            {{ share(amount.visits) }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-2.5 text-end">
+                                    {{ formatNumber(amount.total) }}
+                                </td>
+                            </tr>
+                            <tr v-if="fees.amounts.length === 0">
+                                <td
+                                    colspan="3"
+                                    class="px-5 py-6 text-center text-muted-foreground"
+                                >
+                                    {{ t('No data recorded') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div
                     v-if="amounts.hiddenCount.value"
                     class="border-t px-3 py-1.5"
@@ -170,56 +176,58 @@ const amounts = useShowMore(() => props.fees.amounts.length);
                         {{ t('Newest first') }}
                     </p>
                 </header>
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr
-                            class="border-b bg-muted/40 text-xs text-muted-foreground"
-                        >
-                            <th class="px-5 py-2 text-start font-medium">
-                                {{ t('Month') }}
-                            </th>
-                            <th class="px-3 py-2 text-end font-medium">
-                                {{ t('Visits with a fee') }}
-                            </th>
-                            <th class="px-5 py-2 text-end font-medium">
-                                {{ t('Total (IQD)') }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="(month, index) in fees.months"
-                            :key="month.month ?? 'undated'"
-                            class="border-b tabular-nums last:border-b-0"
-                            :class="{
-                                'hidden print:table-row':
-                                    months.isFolded(index),
-                            }"
-                        >
-                            <td class="px-5 py-2.5">
-                                {{
-                                    month.month
-                                        ? formatMonth(month.month)
-                                        : t('No date')
-                                }}
-                            </td>
-                            <td class="px-3 py-2.5 text-end">
-                                {{ formatNumber(month.visits) }}
-                            </td>
-                            <td class="px-5 py-2.5 text-end">
-                                {{ formatNumber(month.total) }}
-                            </td>
-                        </tr>
-                        <tr v-if="fees.months.length === 0">
-                            <td
-                                colspan="3"
-                                class="px-5 py-6 text-center text-muted-foreground"
+                <div class="max-md:overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr
+                                class="border-b bg-muted/40 text-xs text-muted-foreground"
                             >
-                                {{ t('No data recorded') }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <th class="px-5 py-2 text-start font-medium">
+                                    {{ t('Month') }}
+                                </th>
+                                <th class="px-3 py-2 text-end font-medium">
+                                    {{ t('Visits with a fee') }}
+                                </th>
+                                <th class="px-5 py-2 text-end font-medium">
+                                    {{ t('Total (IQD)') }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(month, index) in fees.months"
+                                :key="month.month ?? 'undated'"
+                                class="border-b tabular-nums last:border-b-0"
+                                :class="{
+                                    'hidden print:table-row':
+                                        months.isFolded(index),
+                                }"
+                            >
+                                <td class="px-5 py-2.5">
+                                    {{
+                                        month.month
+                                            ? formatMonth(month.month)
+                                            : t('No date')
+                                    }}
+                                </td>
+                                <td class="px-3 py-2.5 text-end">
+                                    {{ formatNumber(month.visits) }}
+                                </td>
+                                <td class="px-5 py-2.5 text-end">
+                                    {{ formatNumber(month.total) }}
+                                </td>
+                            </tr>
+                            <tr v-if="fees.months.length === 0">
+                                <td
+                                    colspan="3"
+                                    class="px-5 py-6 text-center text-muted-foreground"
+                                >
+                                    {{ t('No data recorded') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div
                     v-if="months.hiddenCount.value"
                     class="border-t px-3 py-1.5"

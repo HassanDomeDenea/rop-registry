@@ -42,16 +42,16 @@ const items = computed<NavItem[]>(() => [
             "
         />
 
-        <div class="flex gap-8">
+        <div class="flex gap-8 max-md:flex-col max-md:gap-4">
             <nav
-                class="flex w-56 shrink-0 flex-col gap-1"
+                class="flex w-56 shrink-0 flex-col gap-1 max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4"
                 :aria-label="t('Settings')"
             >
                 <Link
                     v-for="item in items"
                     :key="item.title"
                     :href="item.href"
-                    class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors"
+                    class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors max-md:shrink-0 max-md:whitespace-nowrap"
                     :class="
                         isCurrentOrParentUrl(item.href)
                             ? 'bg-accent font-medium text-accent-foreground'
@@ -63,7 +63,7 @@ const items = computed<NavItem[]>(() => [
                 </Link>
             </nav>
 
-            <div class="max-w-2xl flex-1 space-y-6">
+            <div class="max-w-2xl flex-1 space-y-6 max-md:min-w-0">
                 <slot />
             </div>
         </div>

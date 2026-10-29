@@ -57,12 +57,14 @@ const pages = computed(() => props.paginator.links.slice(1, -1));
                     :class="
                         page.active
                             ? 'bg-primary font-medium text-primary-foreground'
-                            : 'hover:bg-accent'
+                            : 'hover:bg-accent max-md:hidden'
                     "
                 >
                     {{ page.label }}
                 </Link>
-                <span v-else class="px-1 text-muted-foreground">…</span>
+                <span v-else class="px-1 text-muted-foreground max-md:hidden"
+                    >…</span
+                >
             </template>
             <component
                 :is="next?.url ? Link : 'span'"

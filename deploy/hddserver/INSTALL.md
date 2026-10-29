@@ -16,9 +16,9 @@ Files in this folder:
 
 ## What you need
 
-- The HDDServer installer, `HddServerSetup-<version>.exe`, built **after**
-  2026-10-28 (earlier builds stop on the second `Install.cmd` run and can finish
-  without an application key).
+- The HDDServer installer, `HddServerSetup-1.0.5.exe` or later (earlier builds
+  stop on the second `Install.cmd` run, can finish without an application key,
+  and cannot turn MariaDB off).
 - Node.js LTS installer (https://nodejs.org). The registry's frontend build needs
   real Node; HDDServer's bundled Bun is not enough.
 - GitHub admin access to `HassanDomeDenea/rop-registry` (to add a deploy key).
@@ -43,8 +43,10 @@ Files in this folder:
 4. **Swap in the registry's server config.** Exit HDDServer from the tray icon.
    In `D:\HddServer\conf`, keep copies of `nginx.conf`, `workers.json` and
    `cron.json` (e.g. rename to `*.clinic`), then copy the three files from this
-   folder there. Start HDDServer again; the dashboard should show nginx and PHP
-   running (the site itself is not installed yet).
+   folder there. The registry uses SQLite, not MariaDB, so also open
+   `D:\HddServer\conf\settings.json` and set `"mariaDb": false` (add the line if
+   it is missing). Start HDDServer again; the dashboard should show only nginx
+   and PHP, both running (the site itself is not installed yet).
 
 5. **Create the deployment profile.** Run `D:\HddServer\deployment\Setup.cmd`:
    - Profile: `rop`
@@ -147,6 +149,7 @@ An unchanged branch is a no-op.
 | Update failed | The site stays in maintenance mode. Read the log, fix, then run `Resume.cmd` (or `Update.cmd` again). |
 | "Application health check failed" | HDDServer was not running or nginx is not using this folder's `nginx.conf`. Start it, then run `Resume.cmd`. |
 | Error 500, log says "No application encryption key" | `.env` had no `APP_KEY=` line. Add an empty `APP_KEY=` line, then run `php artisan optimize:clear`, `php artisan key:generate --force`, `php artisan optimize`. |
+| "Server is starting..." when reloading any page other than the home page | nginx is using an old `nginx.conf` without the `fastcgi_buffer_size` lines (its `logs\nginx\error.log` says "upstream sent too big header"). Copy this folder's `nginx.conf` to `D:\HddServer\conf` and restart HDDServer. |
 | A change in `.env` has no effect | Run `php artisan optimize`. |
 | Other PCs can't connect | Network set to Private? Right IP? Port 80 free? Try `http://<IP>/health`, which should answer `ok`. |
 | Error details | `D:\HddServer\sites\rop\storage\logs\laravel-*.log`, and HDDServer's `logs\nginx\error.log`. Deployment logs are under `%LOCALAPPDATA%\HDDServer\deployments\...\rop\logs`. |

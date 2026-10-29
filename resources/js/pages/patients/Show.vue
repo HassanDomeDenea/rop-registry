@@ -339,7 +339,7 @@ function updateStatus(status: unknown) {
         </template>
     </PageHeader>
 
-    <div class="grid grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
         <div class="rounded-xl border bg-card px-4 py-3 shadow-xs">
             <p class="text-xs text-muted-foreground">{{ t('Age today') }}</p>
             <p class="mt-0.5 text-lg font-semibold tabular-nums">
@@ -376,7 +376,7 @@ function updateStatus(status: unknown) {
             </p>
         </div>
         <div
-            class="rounded-xl border px-4 py-3 shadow-xs"
+            class="rounded-xl border px-4 py-3 shadow-xs max-md:col-span-2"
             :class="
                 patient.next_appointment_date &&
                 (patient.days_until_appointment ?? 0) < 0
@@ -400,16 +400,19 @@ function updateStatus(status: unknown) {
         </div>
     </div>
 
-    <div class="grid grid-cols-3 items-start gap-6">
-        <div class="col-span-2 space-y-4">
-            <div class="flex gap-1 rounded-lg bg-muted p-1" role="tablist">
+    <div class="grid items-start gap-6 md:grid-cols-3">
+        <div class="min-w-0 space-y-4 md:col-span-2">
+            <div
+                class="flex gap-1 rounded-lg bg-muted p-1 max-md:overflow-x-auto"
+                role="tablist"
+            >
                 <button
                     v-for="item in tabs"
                     :key="item.value"
                     type="button"
                     role="tab"
                     :aria-selected="tab === item.value"
-                    class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
+                    class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors max-md:shrink-0 max-md:whitespace-nowrap"
                     :class="
                         tab === item.value
                             ? 'bg-card font-medium shadow-xs ring-1 ring-border'

@@ -62,7 +62,7 @@ function move(step: number) {
 </script>
 
 <template>
-    <form class="relative w-full max-w-sm" @submit.prevent="submit">
+    <form class="relative w-full max-w-sm min-w-0" @submit.prevent="submit">
         <Search
             class="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         />

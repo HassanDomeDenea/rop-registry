@@ -14,7 +14,9 @@ import { Toaster } from '@/components/ui/sonner';
         <AppContent variant="sidebar" class="min-w-0 overflow-x-clip">
             <AppSidebarHeader />
             <CaptureBanner />
-            <main class="mx-auto w-full max-w-[1500px] flex-1 space-y-6 p-6">
+            <main
+                class="mx-auto w-full max-w-[1500px] flex-1 space-y-6 p-4 md:p-6"
+            >
                 <slot />
             </main>
         </AppContent>

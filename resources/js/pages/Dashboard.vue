@@ -61,7 +61,7 @@ const todayLabel = formatDate(todayIso());
         </Button>
     </PageHeader>
 
-    <div class="grid grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <StatCard
             :label="t('Patients')"
             :value="formatNumber(figures.patients)"
@@ -96,7 +96,7 @@ const todayLabel = formatDate(todayIso());
         />
     </div>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid gap-6 md:grid-cols-2">
         <SectionCard
             :title="t('Appointments today')"
             :description="t(':count patients', { count: today.length })"

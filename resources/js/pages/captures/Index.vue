@@ -268,7 +268,7 @@ function saveFolder() {
             </Button>
         </template>
 
-        <ul class="grid grid-cols-4 gap-4">
+        <ul class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <li
                 v-for="capture in batch.captures"
                 :key="capture.id"
@@ -349,7 +349,7 @@ function saveFolder() {
         :icon="FolderInput"
         :description="t('Two ways; both can be used at the same time')"
     >
-        <div class="grid grid-cols-2 gap-8 text-sm">
+        <div class="grid gap-8 text-sm md:grid-cols-2">
             <div class="space-y-2">
                 <h3 class="font-semibold">
                     {{ t('1. Virtual printer') }}

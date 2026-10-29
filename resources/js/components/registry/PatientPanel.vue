@@ -79,7 +79,7 @@ function attachmentsOf(visit: Visit) {
 
 <template>
     <aside
-        class="sticky top-6 flex max-h-[calc(100vh-3rem)] w-[26rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs 2xl:w-[32rem]"
+        class="sticky top-6 flex max-h-[calc(100vh-3rem)] w-[26rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs max-md:fixed max-md:inset-0 max-md:z-50 max-md:max-h-none max-md:w-auto max-md:rounded-none 2xl:w-[32rem]"
         :aria-label="t('Patient record')"
     >
         <header class="space-y-3 border-b px-4 pt-3 pb-3">
@@ -117,14 +117,17 @@ function attachmentsOf(visit: Visit) {
                     <X />
                 </Button>
             </div>
-            <div class="flex gap-1 rounded-lg bg-muted p-1" role="tablist">
+            <div
+                class="flex gap-1 rounded-lg bg-muted p-1 max-md:overflow-x-auto"
+                role="tablist"
+            >
                 <button
                     v-for="item in tabs"
                     :key="item.value"
                     type="button"
                     role="tab"
                     :aria-selected="tab === item.value"
-                    class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
+                    class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors max-md:shrink-0 max-md:whitespace-nowrap"
                     :class="
                         tab === item.value
                             ? 'bg-card font-medium shadow-xs ring-1 ring-border'

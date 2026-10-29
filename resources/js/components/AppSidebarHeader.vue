@@ -30,17 +30,22 @@ const appearanceIcon = computed(
 <template>
     <header
         data-slot="app-header"
-        class="no-print flex h-14 shrink-0 items-center gap-3 border-b border-border/70 px-4"
+        class="no-print flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-3 md:gap-3 md:px-4"
     >
         <SidebarTrigger class="-ms-1" />
 
         <GlobalSearch />
 
-        <div class="ms-auto flex items-center gap-1.5">
-            <Button as-child size="sm">
+        <div class="ms-auto flex shrink-0 items-center gap-0.5 md:gap-1.5">
+            <Button
+                as-child
+                size="sm"
+                class="max-md:size-9 max-md:px-0"
+                :title="t('New patient')"
+            >
                 <Link :href="patients.create()">
                     <UserPlus />
-                    {{ t('New patient') }}
+                    <span class="max-md:sr-only">{{ t('New patient') }}</span>
                 </Link>
             </Button>
             <Button

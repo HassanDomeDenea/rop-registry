@@ -484,7 +484,7 @@ function submit() {
                         )
                     }}
                 </p>
-                <ul class="mt-3 grid grid-cols-2 gap-2">
+                <ul class="mt-3 grid gap-2 md:grid-cols-2">
                     <li v-for="match in duplicates" :key="match.id">
                         <a
                             :href="patientRoutes.show.url(match.id)"
@@ -523,12 +523,12 @@ function submit() {
                 </ul>
             </div>
 
-            <div class="grid grid-cols-3 gap-6">
-                <div class="col-span-2 space-y-6">
+            <div class="grid gap-6 md:grid-cols-3">
+                <div class="space-y-6 md:col-span-2">
                     <SectionCard :title="t('Identity')" :icon="UserRound">
-                        <div class="grid grid-cols-6 gap-4">
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-6">
                             <FormField
-                                class="col-span-4"
+                                class="col-span-2 md:col-span-4"
                                 :label="t('Baby full name')"
                                 for="name"
                                 :error="form.errors.name"
@@ -589,7 +589,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-6"
+                                class="col-span-2 md:col-span-6"
                                 :label="t('Mother name')"
                                 for="mother_name"
                                 :error="form.errors.mother_name"
@@ -601,7 +601,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-3"
+                                class="col-span-2 md:col-span-3"
                                 :label="t('Sex')"
                                 :error="form.errors.sex"
                             >
@@ -612,7 +612,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-3"
+                                class="col-span-2 md:col-span-3"
                                 :label="t('Date of birth')"
                                 for="dob"
                                 :error="form.errors.dob"
@@ -637,9 +637,9 @@ function submit() {
                     </SectionCard>
 
                     <SectionCard :title="t('Birth history')" :icon="Baby">
-                        <div class="grid grid-cols-6 gap-4">
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-6">
                             <FormField
-                                class="col-span-2"
+                                class="md:col-span-2"
                                 :label="t('Gestational age (weeks)')"
                                 for="ga_weeks"
                                 :error="form.errors.ga_weeks"
@@ -653,7 +653,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-2"
+                                class="md:col-span-2"
                                 :label="t('+ days')"
                                 for="ga_days"
                                 :error="form.errors.ga_days"
@@ -682,7 +682,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-3"
+                                class="col-span-2 md:col-span-3"
                                 :label="t('Multiple births')"
                                 :error="form.errors.multiplicity"
                             >
@@ -697,7 +697,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-3"
+                                class="col-span-2 md:col-span-3"
                                 :label="t('Delivery mode')"
                                 :error="form.errors.delivery_mode"
                             >
@@ -714,7 +714,7 @@ function submit() {
                         :title="t('Neonatal course')"
                         :icon="HeartPulse"
                     >
-                        <div class="grid grid-cols-6 gap-4">
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-6">
                             <FormField
                                 class="col-span-2"
                                 :label="t('NICU stay (days)')"
@@ -801,7 +801,7 @@ function submit() {
                                 </FormField>
                             </template>
                             <FormField
-                                class="col-span-6"
+                                class="col-span-2 md:col-span-6"
                                 :label="t('Associated systemic illness')"
                                 :error="
                                     (form.errors as Record<string, string>)
@@ -815,7 +815,7 @@ function submit() {
                                 />
                             </FormField>
                             <FormField
-                                class="col-span-6"
+                                class="col-span-2 md:col-span-6"
                                 :label="t('Other illnesses or details')"
                                 for="systemic_illness"
                                 :error="form.errors.systemic_illness"

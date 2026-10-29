@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     BarChart3,
     BellRing,
@@ -12,7 +12,7 @@ import {
     Stethoscope,
     Users,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -24,6 +24,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useCaptureStatus } from '@/composables/useCaptureStatus';
 import { useI18n } from '@/composables/useI18n';
@@ -42,6 +43,16 @@ import type { NavItem } from '@/types';
 const page = usePage();
 const { isRtl, t } = useI18n();
 const { pending: pendingCaptures } = useCaptureStatus();
+const { isMobile, setOpenMobile } = useSidebar();
+
+// On a phone the menu covers the page, so it closes once a link is followed.
+const stopListening = router.on('navigate', () => {
+    if (isMobile.value) {
+        setOpenMobile(false);
+    }
+});
+
+onBeforeUnmount(stopListening);
 
 const registryItems = computed<NavItem[]>(() => [
     { title: t('Dashboard'), href: dashboard(), icon: LayoutGrid },

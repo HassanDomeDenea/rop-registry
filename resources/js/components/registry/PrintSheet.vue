@@ -20,9 +20,12 @@ function print() {
 </script>
 
 <template>
-    <div class="min-h-svh bg-muted py-8 print:bg-white print:py-0">
+    <!-- On a phone the sheet keeps its A4 width and scrolls sideways. -->
+    <div
+        class="min-h-svh bg-muted py-8 max-md:overflow-x-auto max-md:px-4 max-md:py-4 print:bg-white print:py-0"
+    >
         <div
-            class="no-print mx-auto mb-4 flex w-[210mm] items-center justify-end gap-2"
+            class="no-print mx-auto mb-4 flex w-[210mm] items-center justify-end gap-2 max-md:sticky max-md:start-0 max-md:w-auto"
         >
             <Button @click="print">
                 <Printer />

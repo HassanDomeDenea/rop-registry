@@ -130,8 +130,8 @@ const routeArgs = computed(() => ({
             </div>
         </header>
 
-        <div class="space-y-4 px-5 py-4">
-            <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-4 px-4 py-4 md:px-5">
+            <div class="grid gap-6 md:grid-cols-2">
                 <EyeSummary :visit="visit" eye="right" />
                 <EyeSummary :visit="visit" eye="left" />
             </div>

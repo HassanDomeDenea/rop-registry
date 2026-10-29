@@ -16,7 +16,7 @@ defineProps<{
     >
         <header
             v-if="title || $slots.actions"
-            class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5"
+            class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 md:px-5"
         >
             <div class="flex min-w-0 items-center gap-2.5">
                 <component
@@ -32,11 +32,11 @@ defineProps<{
                     </p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 max-md:flex-wrap">
                 <slot name="actions" />
             </div>
         </header>
-        <div :class="flush ? '' : 'p-5'">
+        <div :class="flush ? '' : 'p-4 md:p-5'">
             <slot />
         </div>
     </section>

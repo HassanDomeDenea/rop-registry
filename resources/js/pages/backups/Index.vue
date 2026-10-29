@@ -370,7 +370,7 @@ function submitRestore() {
         {{ notice }}
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-xl border bg-card p-4 shadow-xs">
             <DatabaseBackup class="size-5 text-success" />
             <p class="mt-2 text-sm font-medium">{{ t('Full backup') }}</p>

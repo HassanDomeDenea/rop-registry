@@ -139,7 +139,7 @@ function updateStatus(patient: PatientRow, status: unknown) {
         "
     />
 
-    <div class="grid grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
         <button
             v-for="group in groups"
             :key="group.key"
@@ -162,7 +162,7 @@ function updateStatus(patient: PatientRow, status: unknown) {
     </div>
 
     <section class="rounded-xl border bg-card shadow-xs">
-        <header class="border-b px-5 py-3.5">
+        <header class="border-b px-5 py-3.5 max-md:px-4">
             <h2 class="text-sm font-semibold">{{ activeGroup.label }}</h2>
             <p class="mt-0.5 max-w-3xl text-xs text-muted-foreground">
                 {{ activeGroup.description }}

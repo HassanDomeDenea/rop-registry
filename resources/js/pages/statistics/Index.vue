@@ -192,11 +192,16 @@ function number(value: number | null) {
         class="no-print flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-xs"
         @submit.prevent="apply"
     >
-        <CalendarRange class="mb-2.5 size-4 text-muted-foreground" />
-        <FormField :label="t('First seen from')" class="w-52">
+        <CalendarRange
+            class="mb-2.5 size-4 text-muted-foreground max-md:hidden"
+        />
+        <FormField
+            :label="t('First seen from')"
+            class="w-52 max-md:min-w-0 max-md:flex-1"
+        >
             <DateInput v-model="range.from" />
         </FormField>
-        <FormField :label="t('To')" class="w-52">
+        <FormField :label="t('To')" class="w-52 max-md:min-w-0 max-md:flex-1">
             <DateInput v-model="range.to" />
         </FormField>
         <Button type="submit">{{ t('Apply') }}</Button>
@@ -259,7 +264,7 @@ function number(value: number | null) {
         </p>
     </form>
 
-    <div class="grid grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <StatCard
             v-for="kpi in statistics.kpis"
             :key="kpi.key"
@@ -286,59 +291,67 @@ function number(value: number | null) {
                 }}
             </p>
         </header>
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b bg-muted/40 text-xs text-muted-foreground">
-                    <th class="px-5 py-2 text-start font-medium">
-                        {{ t('Measure') }}
-                    </th>
-                    <th class="px-4 py-2 text-end font-medium">
-                        {{ t('Recorded') }}
-                    </th>
-                    <th class="px-4 py-2 text-end font-medium">
-                        {{ t('Missing') }}
-                    </th>
-                    <th class="px-4 py-2 text-end font-medium">
-                        {{ t('Mean') }}
-                    </th>
-                    <th class="px-4 py-2 text-end font-medium">
-                        {{ t('Median') }}
-                    </th>
-                    <th class="px-4 py-2 text-end font-medium">
-                        {{ t('Minimum') }}
-                    </th>
-                    <th class="px-5 py-2 text-end font-medium">
-                        {{ t('Maximum') }}
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr
-                    v-for="row in statistics.numeric"
-                    :key="row.label"
-                    class="border-b tabular-nums last:border-b-0"
-                >
-                    <td class="px-5 py-2.5">{{ row.label }}</td>
-                    <td class="px-4 py-2.5 text-end">
-                        {{ formatNumber(row.n) }}
-                    </td>
-                    <td class="px-4 py-2.5 text-end text-muted-foreground">
-                        {{ formatNumber(row.missing) }}
-                    </td>
-                    <td class="px-4 py-2.5 text-end font-medium">
-                        {{ number(row.mean) }}
-                    </td>
-                    <td class="px-4 py-2.5 text-end">
-                        {{ number(row.median) }}
-                    </td>
-                    <td class="px-4 py-2.5 text-end">{{ number(row.min) }}</td>
-                    <td class="px-5 py-2.5 text-end">{{ number(row.max) }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="max-md:overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr
+                        class="border-b bg-muted/40 text-xs text-muted-foreground"
+                    >
+                        <th class="px-5 py-2 text-start font-medium">
+                            {{ t('Measure') }}
+                        </th>
+                        <th class="px-4 py-2 text-end font-medium">
+                            {{ t('Recorded') }}
+                        </th>
+                        <th class="px-4 py-2 text-end font-medium">
+                            {{ t('Missing') }}
+                        </th>
+                        <th class="px-4 py-2 text-end font-medium">
+                            {{ t('Mean') }}
+                        </th>
+                        <th class="px-4 py-2 text-end font-medium">
+                            {{ t('Median') }}
+                        </th>
+                        <th class="px-4 py-2 text-end font-medium">
+                            {{ t('Minimum') }}
+                        </th>
+                        <th class="px-5 py-2 text-end font-medium">
+                            {{ t('Maximum') }}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="row in statistics.numeric"
+                        :key="row.label"
+                        class="border-b tabular-nums last:border-b-0"
+                    >
+                        <td class="px-5 py-2.5">{{ row.label }}</td>
+                        <td class="px-4 py-2.5 text-end">
+                            {{ formatNumber(row.n) }}
+                        </td>
+                        <td class="px-4 py-2.5 text-end text-muted-foreground">
+                            {{ formatNumber(row.missing) }}
+                        </td>
+                        <td class="px-4 py-2.5 text-end font-medium">
+                            {{ number(row.mean) }}
+                        </td>
+                        <td class="px-4 py-2.5 text-end">
+                            {{ number(row.median) }}
+                        </td>
+                        <td class="px-4 py-2.5 text-end">
+                            {{ number(row.min) }}
+                        </td>
+                        <td class="px-5 py-2.5 text-end">
+                            {{ number(row.max) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid gap-6 md:grid-cols-2">
         <CrosstabTable
             v-for="table in statistics.crosstabs"
             :key="table.title"
@@ -352,7 +365,7 @@ function number(value: number | null) {
         <h2 class="text-base font-semibold tracking-tight">
             {{ section.title }}
         </h2>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid gap-4 md:grid-cols-3">
             <BarList
                 v-for="key in section.charts.filter(
                     (name) => statistics.charts[name],

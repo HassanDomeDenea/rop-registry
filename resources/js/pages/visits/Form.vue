@@ -150,7 +150,7 @@ function submit() {
 
             <!-- Patient banner: the header of the paper form -->
             <div
-                class="grid grid-cols-6 gap-4 rounded-xl border bg-card px-5 py-4 text-sm shadow-xs"
+                class="grid grid-cols-2 gap-4 rounded-xl border bg-card px-4 py-4 text-sm shadow-xs sm:grid-cols-3 md:grid-cols-6 md:px-5"
             >
                 <div>
                     <p class="text-xs text-muted-foreground">

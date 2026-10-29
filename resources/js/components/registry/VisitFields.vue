@@ -141,7 +141,7 @@ function markBothNormal() {
     <div class="space-y-6">
         <SectionCard :title="t('Examination')" :icon="Stethoscope">
             <div
-                class="grid grid-cols-[minmax(13rem,1fr)_minmax(0,1fr)_minmax(0,2fr)] gap-4"
+                class="grid gap-4 md:grid-cols-[minmax(13rem,1fr)_minmax(0,1fr)_minmax(0,2fr)]"
             >
                 <FormField
                     :label="t('Date of examination')"
@@ -194,7 +194,7 @@ function markBothNormal() {
                 </Button>
             </template>
 
-            <div class="grid grid-cols-[1fr_auto_1fr] gap-6">
+            <div class="grid gap-6 md:grid-cols-[1fr_auto_1fr]">
                 <div>
                     <h3 class="mb-3 text-center text-sm font-semibold">
                         Right eye
@@ -210,8 +210,12 @@ function markBothNormal() {
                     />
                 </div>
 
-                <div class="flex flex-col items-center gap-2 pt-24">
-                    <div class="w-px flex-1 bg-border" />
+                <div
+                    class="flex flex-col items-center gap-2 pt-24 max-md:flex-row max-md:pt-0"
+                >
+                    <div
+                        class="w-px flex-1 bg-border max-md:h-px max-md:w-auto"
+                    />
                     <Button
                         type="button"
                         variant="outline"
@@ -219,9 +223,11 @@ function markBothNormal() {
                         title="Copy right eye to left eye"
                         @click="copyEye('right', 'left')"
                     >
-                        <ArrowLeftRight />
+                        <ArrowLeftRight class="max-md:rotate-90" />
                     </Button>
-                    <div class="w-px flex-1 bg-border" />
+                    <div
+                        class="w-px flex-1 bg-border max-md:h-px max-md:w-auto"
+                    />
                 </div>
 
                 <div>
@@ -241,15 +247,15 @@ function markBothNormal() {
             </div>
         </SectionCard>
 
-        <div class="grid grid-cols-3 gap-6">
+        <div class="grid gap-6 md:grid-cols-3">
             <SectionCard
-                class="col-span-2"
+                class="md:col-span-2"
                 :title="t('Assessment and management plan')"
                 :icon="ClipboardList"
             >
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid gap-4 md:grid-cols-2">
                     <FormField
-                        class="col-span-2"
+                        class="md:col-span-2"
                         :label="t('Overall assessment')"
                         :error="errors.assessment"
                     >
@@ -277,7 +283,7 @@ function markBothNormal() {
                         <TextArea v-model="form.management_notes" :rows="2" />
                     </FormField>
                     <FormField
-                        class="col-span-2"
+                        class="md:col-span-2"
                         :label="t('Notes')"
                         :error="errors.notes"
                     >

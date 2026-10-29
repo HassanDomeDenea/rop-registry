@@ -81,7 +81,12 @@ const defaults: Filters = {
 
 const columns = computed<Column[]>(() => [
     { key: 'visit_date', label: t('Date'), sortable: true, class: 'w-40' },
-    { key: 'patient', label: t('Patient'), sortable: true },
+    {
+        key: 'patient',
+        label: t('Patient'),
+        sortable: true,
+        class: 'max-md:min-w-40',
+    },
     { key: 'right', label: t('Right eye') },
     { key: 'left', label: t('Left eye') },
     { key: 'management_plan', label: t('Plan'), sortable: true },
@@ -184,7 +189,9 @@ function openPatient(row: Row) {
 
     <section class="rounded-xl border bg-card shadow-xs">
         <div class="flex flex-wrap items-center gap-2 border-b p-3">
-            <div class="relative min-w-64 flex-1">
+            <div
+                class="relative min-w-64 flex-1 max-md:min-w-0 max-md:basis-full"
+            >
                 <Search
                     class="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 />
@@ -201,38 +208,38 @@ function openPatient(row: Row) {
                 />
             </div>
             <NativeSelect
-                class="w-44"
+                class="w-44 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.finding || null"
                 :options="findingOptions"
                 :placeholder="t('Any finding')"
                 @update:model-value="setFilter('finding', $event as string)"
             />
             <NativeSelect
-                class="w-48"
+                class="w-48 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.plan || null"
                 :options="enumOptions('management_plan')"
                 :placeholder="t('Any plan')"
                 @update:model-value="setFilter('plan', $event as string)"
             />
             <NativeSelect
-                class="w-44"
+                class="w-44 max-md:w-[calc(50%-0.25rem)]"
                 :model-value="state.kind || null"
                 :options="enumOptions('visit_kind')"
                 :placeholder="t('Any record type')"
                 @update:model-value="setFilter('kind', $event as string)"
             />
             <div
-                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                class="flex items-center gap-1.5 text-xs text-muted-foreground max-md:w-full"
             >
                 {{ t('From') }}
                 <DateInput
-                    class="w-48"
+                    class="w-48 max-md:w-auto max-md:flex-1"
                     :model-value="state.from || null"
                     @update:model-value="setFilter('from', $event as string)"
                 />
                 {{ t('To') }}
                 <DateInput
-                    class="w-48"
+                    class="w-48 max-md:w-auto max-md:flex-1"
                     :model-value="state.to || null"
                     @update:model-value="setFilter('to', $event as string)"
                 />
@@ -403,7 +410,7 @@ function openPatient(row: Row) {
             <div class="flex items-center gap-2 border-t px-4 py-3 text-sm">
                 <span class="text-muted-foreground">{{ t('Rows') }}</span>
                 <NativeSelect
-                    class="w-20"
+                    class="w-20 max-md:w-[calc(50%-0.25rem)]"
                     size="sm"
                     :nullable="false"
                     :model-value="state.per_page"

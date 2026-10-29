@@ -109,8 +109,10 @@ const labelEvery = computed(() => Math.ceil(props.months.length / 14));
 </script>
 
 <template>
-    <figure class="rounded-xl border bg-card p-5 shadow-xs">
-        <figcaption class="mb-3 flex items-start justify-between gap-4">
+    <figure class="rounded-xl border bg-card p-5 shadow-xs max-md:p-4">
+        <figcaption
+            class="mb-3 flex items-start justify-between gap-4 max-md:flex-wrap"
+        >
             <div>
                 <h3 class="text-sm font-semibold">
                     {{ t('Monthly activity') }}
@@ -123,9 +125,9 @@ const labelEvery = computed(() => Math.ceil(props.months.length / 14));
                     }}
                 </p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 max-md:flex-wrap">
                 <ul
-                    class="flex items-center gap-4 text-xs text-muted-foreground"
+                    class="flex items-center gap-4 text-xs text-muted-foreground max-md:flex-wrap"
                 >
                     <li
                         v-for="item in series"

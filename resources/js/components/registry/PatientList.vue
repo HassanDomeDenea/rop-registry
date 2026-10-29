@@ -25,9 +25,9 @@ const { t, formatGestationalAge } = useI18n();
         <li v-for="patient in patients" :key="patient.id">
             <Link
                 :href="patientRoutes.show(patient.id)"
-                class="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-muted/50"
+                class="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-muted/50 max-md:flex-wrap max-md:gap-y-2 max-md:px-4"
             >
-                <div class="min-w-0">
+                <div class="min-w-0 max-md:min-w-40 max-md:flex-1">
                     <p class="truncate text-sm font-medium">
                         <bdi>{{ patient.name }}</bdi>
                     </p>
@@ -52,7 +52,7 @@ const { t, formatGestationalAge } = useI18n();
                         <PatientFlags :patient="patient" />
                     </div>
                 </div>
-                <div class="shrink-0 text-end text-sm">
+                <div class="shrink-0 text-end text-sm max-md:ms-auto">
                     <slot name="meta" :patient="patient" />
                 </div>
             </Link>
