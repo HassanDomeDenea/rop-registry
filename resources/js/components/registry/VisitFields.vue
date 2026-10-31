@@ -196,11 +196,15 @@ function markBothNormal() {
 
             <div class="grid gap-6 md:grid-cols-[1fr_auto_1fr]">
                 <div>
-                    <h3 class="mb-3 text-center text-sm font-semibold">
-                        Right eye
-                        <span class="font-normal text-muted-foreground"
-                            >OD</span
+                    <h3
+                        class="sticky top-0 z-10 mb-3 flex justify-center bg-card py-2"
+                    >
+                        <span
+                            class="rounded-full bg-rose-600 px-4 py-1 text-sm font-semibold text-white shadow-sm"
                         >
+                            Right eye
+                            <span class="font-normal opacity-85">OD</span>
+                        </span>
                     </h3>
                     <EyeFields
                         eye="right"
@@ -231,11 +235,15 @@ function markBothNormal() {
                 </div>
 
                 <div>
-                    <h3 class="mb-3 text-center text-sm font-semibold">
-                        Left eye
-                        <span class="font-normal text-muted-foreground"
-                            >OS</span
+                    <h3
+                        class="sticky top-0 z-10 mb-3 flex justify-center bg-card py-2"
+                    >
+                        <span
+                            class="rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white shadow-sm"
                         >
+                            Left eye
+                            <span class="font-normal opacity-85">OS</span>
+                        </span>
                     </h3>
                     <EyeFields
                         eye="left"

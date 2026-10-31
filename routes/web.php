@@ -59,6 +59,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::patch('attachments/{attachment}', [AttachmentController::class, 'update'])->name('attachments.update');
     Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+    Route::post('attachments/{attachment}/image', [AttachmentController::class, 'updateImage'])->name('attachments.image.update');
+    Route::delete('attachments/{attachment}/image', [AttachmentController::class, 'restoreImage'])->name('attachments.image.restore');
 
     Route::get('review', [ReviewItemController::class, 'index'])->name('review.index');
     Route::post('patients/{patient}/review-items', [ReviewItemController::class, 'store'])->name('patients.review-items.store');

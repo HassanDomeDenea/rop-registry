@@ -2,6 +2,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
     Check,
+    Keyboard,
     Languages,
     Monitor,
     Moon,
@@ -14,6 +15,7 @@ import { computed } from 'vue';
 import SectionCard from '@/components/registry/SectionCard.vue';
 import { useAppearance } from '@/composables/useAppearance';
 import { useI18n } from '@/composables/useI18n';
+import { useKeyboardSwitcher } from '@/composables/useKeyboardSwitcher';
 import { update } from '@/routes/preferences';
 import type { Appearance } from '@/types';
 
@@ -36,6 +38,33 @@ function changePrintLocale(code: string | null) {
 }
 const { appearance, updateAppearance, colorful, updateColorful } =
     useAppearance();
+
+const keyboard = useKeyboardSwitcher();
+
+const keyboardChoices = [
+    { value: true, label: 'Switch automatically' },
+    { value: false, label: 'Off' },
+];
+
+const keyboardStatus = computed(() => {
+    switch (keyboard.status.value) {
+        case 'connected':
+            return {
+                text: 'HddKeyboardSwitcher is running on this computer.',
+                dot: 'bg-emerald-500',
+            };
+        case 'unavailable':
+            return {
+                text: 'HddKeyboardSwitcher is not running on this computer.',
+                dot: 'bg-amber-500',
+            };
+        default:
+            return {
+                text: 'Looking for HddKeyboardSwitcher…',
+                dot: 'bg-muted-foreground animate-pulse',
+            };
+    }
+});
 
 const themes: { value: Appearance; icon: typeof Sun; label: string }[] = [
     { value: 'light', icon: Sun, label: 'Light' },
@@ -180,6 +209,56 @@ function changeLocale(code: string) {
             >
                 {{ language.label }}
                 <Check v-if="printLocale === language.code" class="size-4" />
+            </button>
+        </div>
+    </SectionCard>
+
+    <SectionCard
+        :title="t('Keyboard')"
+        :description="
+            t(
+                'Switches the keyboard of this computer to Arabic in Arabic fields, such as names, and back when you leave them. Needs HddKeyboardSwitcher running on this computer; the choice applies to this browser only.',
+            )
+        "
+        :icon="Keyboard"
+    >
+        <div class="grid grid-cols-2 gap-3">
+            <button
+                v-for="choice in keyboardChoices"
+                :key="choice.label"
+                type="button"
+                class="flex items-center justify-between rounded-lg border px-4 py-3.5 text-sm transition-colors"
+                :class="
+                    keyboard.enabled.value === choice.value
+                        ? 'border-primary bg-accent font-medium text-accent-foreground ring-1 ring-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                "
+                :aria-pressed="keyboard.enabled.value === choice.value"
+                @click="keyboard.setEnabled(choice.value)"
+            >
+                {{ t(choice.label) }}
+                <Check
+                    v-if="keyboard.enabled.value === choice.value"
+                    class="size-4"
+                />
+            </button>
+        </div>
+        <div
+            v-if="keyboard.enabled.value"
+            class="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+        >
+            <span
+                class="size-2 shrink-0 rounded-full"
+                :class="keyboardStatus.dot"
+            />
+            {{ t(keyboardStatus.text) }}
+            <button
+                v-if="keyboard.status.value === 'unavailable'"
+                type="button"
+                class="font-medium text-primary hover:underline"
+                @click="keyboard.checkConnection()"
+            >
+                {{ t('Check again') }}
             </button>
         </div>
     </SectionCard>

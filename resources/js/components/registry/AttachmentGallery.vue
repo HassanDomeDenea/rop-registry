@@ -7,12 +7,14 @@ import {
     ExternalLink,
     FileText,
     ImagePlus,
+    Pencil,
     Trash2,
     UploadCloud,
 } from '@lucide/vue';
 import { useEventListener } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/registry/ConfirmDialog.vue';
+import ImageEditor from '@/components/registry/ImageEditor.vue';
 import NativeSelect from '@/components/registry/NativeSelect.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -47,6 +49,7 @@ const visitId = ref<string | number | boolean | null>(
 );
 const viewerIndex = ref<number | null>(null);
 const deleting = ref<Attachment | null>(null);
+const editing = ref<Attachment | null>(null);
 
 const visitOptions = computed(() =>
     props.visits.map((visit, index) => ({
@@ -156,6 +159,7 @@ useEventListener(document, 'paste', (event: ClipboardEvent) => {
 
     if (
         files.length === 0 ||
+        editing.value ||
         (event.target as HTMLElement).closest('input, textarea')
     ) {
         return;
@@ -176,7 +180,7 @@ useEventListener(document, 'paste', (event: ClipboardEvent) => {
 });
 
 useEventListener(document, 'keydown', (event: KeyboardEvent) => {
-    if (viewerIndex.value === null) {
+    if (viewerIndex.value === null || editing.value) {
         return;
     }
 
@@ -341,6 +345,12 @@ function destroy() {
                         <FileText class="size-10" />
                         <span class="text-xs font-medium">PDF</span>
                     </span>
+                    <span
+                        v-if="attachment.is_edited"
+                        class="absolute end-1.5 top-1.5 rounded-sm bg-background/85 px-1.5 py-0.5 text-[11px] font-medium"
+                    >
+                        {{ t('Edited') }}
+                    </span>
                 </button>
                 <figcaption class="space-y-1 p-2.5">
                     <input
@@ -374,12 +384,21 @@ function destroy() {
                                 <ExternalLink class="size-3.5" />
                             </a>
                             <a
-                                :href="`${attachment.url}?download=1`"
+                                :href="attachment.download_url"
                                 class="rounded-sm p-1 hover:text-foreground"
                                 :title="t('Download')"
                             >
                                 <Download class="size-3.5" />
                             </a>
+                            <button
+                                v-if="attachment.is_image"
+                                type="button"
+                                class="rounded-sm p-1 hover:text-foreground"
+                                :title="t('Edit picture')"
+                                @click="editing = attachment"
+                            >
+                                <Pencil class="size-3.5" />
+                            </button>
                             <button
                                 type="button"
                                 class="rounded-sm p-1 hover:text-destructive"
@@ -474,6 +493,14 @@ function destroy() {
                         {{ formatBytes(viewed.size) }}
                     </span>
                     <span class="flex items-center gap-2">
+                        <Button
+                            v-if="viewed.is_image"
+                            variant="outline"
+                            size="sm"
+                            @click="editing = viewed"
+                        >
+                            <Pencil />{{ t('Edit picture') }}
+                        </Button>
                         <Button as-child variant="outline" size="sm">
                             <a
                                 :href="viewed.url"
@@ -484,7 +511,7 @@ function destroy() {
                             </a>
                         </Button>
                         <Button as-child variant="outline" size="sm">
-                            <a :href="`${viewed.url}?download=1`">
+                            <a :href="viewed.download_url">
                                 <Download />{{ t('Download') }}
                             </a>
                         </Button>
@@ -500,6 +527,13 @@ function destroy() {
             :confirm-label="t('Delete')"
             @update:open="deleting = null"
             @confirm="destroy"
+        />
+
+        <ImageEditor
+            v-if="editing"
+            :key="editing.id"
+            :attachment="editing"
+            @close="editing = null"
         />
     </div>
 </template>

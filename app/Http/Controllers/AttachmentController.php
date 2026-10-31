@@ -64,8 +64,60 @@ class AttachmentController extends Controller
         abort_unless($disk->exists($attachment->path), 404);
 
         return $request->boolean('download')
-            ? $disk->download($attachment->path, $attachment->original_name)
-            : $disk->response($attachment->path, $attachment->original_name, ['Cache-Control' => 'private, max-age=86400']);
+            ? $disk->download($attachment->path, $attachment->fileName())
+            : $disk->response($attachment->path, $attachment->fileName(), ['Cache-Control' => 'private, max-age=86400']);
+    }
+
+    /**
+     * Replace the picture with its edited version. The file as first received stays on the
+     * disk, so the edit can be undone; so do earlier edits, as a backup may still refer to them.
+     */
+    public function updateImage(Request $request, Attachment $attachment): RedirectResponse
+    {
+        abort_unless($attachment->isImage(), 404);
+
+        $request->validate([
+            'image' => ['required', File::types(['jpg', 'jpeg', 'png'])->max((int) config('registry.attachments.max_kilobytes'))],
+        ]);
+
+        /** @var UploadedFile $image */
+        $image = $request->file('image');
+
+        $attachment->update([
+            'original_path' => $attachment->original_path ?? $attachment->path,
+            'original_mime_type' => $attachment->original_mime_type ?? $attachment->mime_type,
+            'original_size' => $attachment->original_size ?? $attachment->size,
+            'path' => $image->storeAs("attachments/{$attachment->patient_id}", Str::uuid().'.'.$image->guessExtension(), $attachment->disk),
+            'mime_type' => (string) $image->getMimeType(),
+            'size' => $image->getSize(),
+            'edited_at' => now(),
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Picture saved.')]);
+
+        return back();
+    }
+
+    /**
+     * Return to the picture as it was first received.
+     */
+    public function restoreImage(Attachment $attachment): RedirectResponse
+    {
+        abort_unless($attachment->isEdited(), 404);
+
+        $attachment->update([
+            'path' => $attachment->original_path,
+            'mime_type' => $attachment->original_mime_type,
+            'size' => $attachment->original_size,
+            'original_path' => null,
+            'original_mime_type' => null,
+            'original_size' => null,
+            'edited_at' => null,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Original picture restored.')]);
+
+        return back();
     }
 
     /**

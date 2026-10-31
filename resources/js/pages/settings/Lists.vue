@@ -52,6 +52,10 @@ const merging = ref<{
     into: Suggestion;
 } | null>(null);
 
+/** Referring doctors are written in Arabic; the other lists in either language. */
+const keyboardFor = (list: string) =>
+    list === 'referring_doctor' ? 'ar' : undefined;
+
 const entries = (list: string) =>
     props.suggestions.filter((suggestion) => suggestion.list === list);
 
@@ -157,6 +161,7 @@ function remove(suggestion: Suggestion) {
                                     v-model="editing.label"
                                     v-focus
                                     dir="auto"
+                                    :data-keyboard="keyboardFor(list.value)"
                                     class="h-8"
                                     @keydown.esc="editing = null"
                                 />
@@ -277,6 +282,7 @@ function remove(suggestion: Suggestion) {
                 <TextInput
                     v-model="drafts[list.value]"
                     dir="auto"
+                    :data-keyboard="keyboardFor(list.value)"
                     :placeholder="t('Add an entry…')"
                 />
                 <Button

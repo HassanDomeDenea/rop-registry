@@ -157,7 +157,9 @@ class RegistryPresenter
         return [
             ...$attachment->only(['id', 'patient_id', 'visit_id', 'original_name', 'mime_type', 'size', 'caption']),
             'is_image' => $attachment->isImage(),
-            'url' => route('attachments.show', $attachment),
+            'is_edited' => $attachment->isEdited(),
+            'url' => route('attachments.show', array_filter(['attachment' => $attachment, 'v' => $attachment->edited_at?->getTimestamp()])),
+            'download_url' => route('attachments.show', ['attachment' => $attachment, 'download' => 1]),
             'created_at' => $attachment->created_at?->toIso8601String(),
         ];
     }

@@ -13,6 +13,7 @@ import {
 } from '@lucide/vue';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
+import AddSelectionToList from '@/components/registry/AddSelectionToList.vue';
 import CheckList from '@/components/registry/CheckList.vue';
 import DateInput from '@/components/registry/DateInput.vue';
 import FormField from '@/components/registry/FormField.vue';
@@ -143,6 +144,13 @@ watch(
 
 // The checklist is the only field that is not a single value.
 const illnesses = ref<string[] | null>(props.patient?.illnesses ?? null);
+
+/** An illness added to the list from the free text is ticked for this patient too. */
+function tickIllness(label: string) {
+    if (!illnesses.value?.includes(label)) {
+        illnesses.value = [...(illnesses.value ?? []), label];
+    }
+}
 
 /**
  * The first examination is saved with the patient only while it is switched on: by
@@ -540,6 +548,7 @@ function submit() {
                                         v-model="form.name"
                                         v-focus="!patient"
                                         dir="auto"
+                                        data-keyboard="ar"
                                         :autocomplete="
                                             patient ? undefined : 'off'
                                         "
@@ -586,6 +595,7 @@ function submit() {
                                     id="file_number"
                                     v-model="form.file_number"
                                     dir="ltr"
+                                    data-keyboard="en"
                                 />
                             </FormField>
                             <FormField
@@ -598,6 +608,7 @@ function submit() {
                                     id="mother_name"
                                     v-model="form.mother_name"
                                     dir="auto"
+                                    data-keyboard="ar"
                                 />
                             </FormField>
                             <FormField
@@ -820,11 +831,17 @@ function submit() {
                                 for="systemic_illness"
                                 :error="form.errors.systemic_illness"
                             >
-                                <TextInput
-                                    id="systemic_illness"
-                                    v-model="form.systemic_illness"
-                                    dir="auto"
-                                />
+                                <AddSelectionToList
+                                    list="illness"
+                                    :options="illnessOptions"
+                                    @added="tickIllness"
+                                >
+                                    <TextInput
+                                        id="systemic_illness"
+                                        v-model="form.systemic_illness"
+                                        dir="auto"
+                                    />
+                                </AddSelectionToList>
                             </FormField>
                         </div>
                     </SectionCard>
@@ -852,7 +869,9 @@ function submit() {
                                     id="referring_doctor"
                                     v-model="form.referring_doctor"
                                     :options="doctorOptions"
+                                    list="referring_doctor"
                                     dir="auto"
+                                    data-keyboard="ar"
                                 />
                             </FormField>
                             <FormField
@@ -865,6 +884,7 @@ function submit() {
                                     v-model="form.phone"
                                     type="tel"
                                     dir="ltr"
+                                    data-keyboard="en"
                                 />
                             </FormField>
                             <FormField
@@ -877,6 +897,7 @@ function submit() {
                                     v-model="form.phone_alt"
                                     type="tel"
                                     dir="ltr"
+                                    data-keyboard="en"
                                 />
                             </FormField>
                             <FormField
@@ -888,6 +909,7 @@ function submit() {
                                     id="address"
                                     v-model="form.address"
                                     dir="auto"
+                                    data-keyboard="ar"
                                 />
                             </FormField>
                         </div>

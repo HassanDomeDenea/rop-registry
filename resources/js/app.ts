@@ -1,5 +1,6 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
+import { initializeKeyboardSwitcher } from '@/composables/useKeyboardSwitcher';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -45,3 +46,6 @@ initializeFlashToast();
 
 // This will keep the document language and direction in step with the page...
 initializeDocumentLanguage();
+
+// This will switch the computer's keyboard for Arabic and English fields...
+initializeKeyboardSwitcher();

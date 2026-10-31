@@ -452,6 +452,7 @@ function applyDoctor() {
                 <input
                     v-model="state.search"
                     type="search"
+                    data-keyboard="ar"
                     :placeholder="
                         t(
                             'Search by name, file no., phone or referring doctor…',
@@ -749,6 +750,7 @@ function applyDoctor() {
                     :options="doctorOptions"
                     :placeholder="t('Referring doctor')"
                     dir="auto"
+                    data-keyboard="ar"
                 />
             </form>
             <DialogFooter class="gap-2">

@@ -69,6 +69,7 @@ function move(step: number) {
         <input
             v-model="search"
             type="search"
+            data-keyboard="ar"
             autocomplete="off"
             role="combobox"
             :aria-expanded="open && search.trim() !== ''"

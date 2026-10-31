@@ -155,7 +155,9 @@ export type Attachment = {
     size: number;
     caption: string | null;
     is_image: boolean;
+    is_edited: boolean;
     url: string;
+    download_url: string;
     created_at: string | null;
 };
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Sparkles } from '@lucide/vue';
 import { computed } from 'vue';
+import AddSelectionToList from '@/components/registry/AddSelectionToList.vue';
 import CheckList from '@/components/registry/CheckList.vue';
 import FormField from '@/components/registry/FormField.vue';
 import SegmentedControl from '@/components/registry/SegmentedControl.vue';
@@ -99,6 +100,22 @@ const findingChoices = computed(() =>
         .map((option) => ({ value: option.id, label: option.label })),
 );
 
+// Hidden entries count as listed: adding them again would be refused as a duplicate.
+const findingLabels = computed(() =>
+    props.findingOptions.map((option) => option.label),
+);
+
+/** A finding added to the list from the notes is ticked for this eye too. */
+function tickFinding(label: string) {
+    const option = props.findingOptions.find(
+        (candidate) => candidate.label === label,
+    );
+
+    if (option && !(findings.value ?? []).includes(option.id)) {
+        findings.value = [...(findings.value ?? []), option.id];
+    }
+}
+
 const findingErrors = computed(() =>
     Object.entries(props.errors)
         .filter(([field]) => field.startsWith(key('findings')))
@@ -187,7 +204,13 @@ const aggressive = computed({
         </FormField>
 
         <FormField label="Notes for this eye" :error="errors[key('notes')]">
-            <TextArea v-model="form[key('notes')]" :rows="2" />
+            <AddSelectionToList
+                list="eye_finding"
+                :options="findingLabels"
+                @added="tickFinding"
+            >
+                <TextArea v-model="form[key('notes')]" :rows="2" />
+            </AddSelectionToList>
         </FormField>
     </div>
 </template>
